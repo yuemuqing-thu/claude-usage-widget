@@ -193,7 +193,7 @@ const POSITION = { top: "48px", right: "48px" };   // 想靠左就把 right 换�
 ### 彻底关掉
 
 - 只想让它消失：菜单栏 Übersicht 图标 → **Quit**，所有挂件一起停。
-- 想删干净：`sh install.sh --uninstall`（会移除挂件、还原 `settings.json`、清掉缓存；Übersicht 本身不动）。
+- 想删干净：`claude-usage-widget uninstall`（会移除挂件、还原 `settings.json`、清掉缓存；Übersicht 本身不动）。
 
 ### 关于点击
 
