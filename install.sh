@@ -1,8 +1,8 @@
 #!/bin/sh
 # Claude Usage 桌面挂件 —— 安装脚本
 #
-#   sh install.sh              安装
-#   sh install.sh --uninstall  卸载
+#   claude-usage-widget install              安装
+#   claude-usage-widget uninstall  卸载
 #
 # 做四件事：
 #   1. 把 statusLine 脚本装到 ~/.claude/usage-widget/bin/
@@ -266,4 +266,4 @@ printf "  ${DIM}拖动：$R    按住药丸拖；展开后按住顶栏拖。双�
 printf "  ${DIM}展开：$R    点药丸右侧的箭头（展开后可选主题色）\n"
 printf "  ${DIM}调位置：$R  编辑 %s/claude-usage.widget/index.jsx 顶部的 POSITION\n" "$WD"
 printf "  ${DIM}临时隐藏：$R 菜单栏 Übersicht 图标 → 点挂件名切换显示\n"
-printf "  ${DIM}卸载：$R    sh install.sh --uninstall\n\n"
+printf "  ${DIM}卸载：$R    claude-usage-widget uninstall\n\n"
