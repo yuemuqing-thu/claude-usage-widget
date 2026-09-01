@@ -1,0 +1,259 @@
+#!/bin/sh
+# Claude Usage 桌面挂件 —— 安装脚本
+#
+#   sh install.sh              安装
+#   sh install.sh --uninstall  卸载
+#
+# 做四件事：
+#   1. 把 statusLine 脚本装到 ~/.claude/usage-widget/bin/
+#   2. 在 ~/.claude/settings.json 里配好 statusLine（自动备份原文件）
+#   3. 把挂件复制进 Übersicht 的 widgets 目录
+#   4. 预热缓存并刷新 Übersicht
+#
+# 只依赖 macOS 自带的 sh / awk / osascript，不需要 jq、python、node。
+
+set -u
+
+SRC=$(cd "$(dirname "$0")" && pwd)
+WIDGET_SRC="$SRC/claude-usage.widget"
+STATE="$HOME/.claude/usage-widget"
+BIN="$STATE/bin"
+STATUSLINE="$BIN/claude-usage-statusline.sh"
+SETTINGS="$HOME/.claude/settings.json"
+
+R='\033[0m'; B='\033[1m'; DIM='\033[2m'
+OK='\033[38;5;114m'; CORAL='\033[38;5;209m'; WARN='\033[38;5;215m'; ERR='\033[38;5;203m'
+
+say()  { printf "$*$R\n"; }
+step() { printf "${CORAL}▸$R $*\n"; }
+good() { printf "  ${OK}✓$R %s\n" "$*"; }
+warn() { printf "  ${WARN}!$R %s\n" "$*"; }
+die()  { printf "  ${ERR}✗$R %s\n" "$*"; exit 1; }
+
+# ─────────────── 可靠地重启 Übersicht ───────────────
+# 注意：`osascript -e 'tell application "Übersicht" to quit'` 可能返回 0 却
+# 并没有真的退出（应用忙时会忽略）。而 enableInteraction 这个偏好只在启动时
+# 读取，没真重启就等于没生效 —— 所以这里按 PID 确认，必要时升级到 SIGKILL。
+# 另外 grep 一律匹配 "bersicht"，避开 Ü 在不同 locale 下的匹配问题。
+ub_pid() { ps -eo pid,comm | grep -i bersicht | grep -v grep | grep -v node-arm | awk '{print $1}' | head -1; }
+
+restart_ubersicht() {
+  PID=$(ub_pid)
+  if [ -n "$PID" ]; then
+    osascript -e 'tell application "Übersicht" to quit' >/dev/null 2>&1
+    i=0
+    while [ $i -lt 8 ]; do
+      sleep 1; i=$((i + 1))
+      kill -0 "$PID" 2>/dev/null || break
+    done
+    if kill -0 "$PID" 2>/dev/null; then
+      kill -TERM "$PID" 2>/dev/null
+      sleep 2
+      kill -0 "$PID" 2>/dev/null && { kill -9 "$PID" 2>/dev/null; sleep 1; }
+    fi
+  fi
+  open -a "Übersicht" 2>/dev/null || open -a "Uebersicht" 2>/dev/null
+  sleep 4
+  [ -n "$(ub_pid)" ]
+}
+
+# ─────────────── 定位 Übersicht 的 widgets 目录 ───────────────
+find_widgets_dir() {
+  for d in \
+    "$HOME/Library/Application Support/Übersicht/widgets" \
+    "$HOME/Library/Application Support/Uebersicht/widgets"
+  do
+    [ -d "$d" ] && { printf '%s' "$d"; return 0; }
+  done
+  return 1
+}
+
+# 子命令：brew 装完之后用户敲 `claude-usage-widget install` 才真正启用。
+# Homebrew 的 formula 不允许在 brew install 阶段改用户主目录，所以必须拆两步。
+CMD="${1:-install}"
+case "$CMD" in
+  install|--install)     ACTION=install ;;
+  uninstall|--uninstall) ACTION=uninstall ;;
+  -h|--help|help)
+    say "用法：claude-usage-widget [install|uninstall]"
+    exit 0 ;;
+  *) die "未知命令：$CMD（可用：install / uninstall）" ;;
+esac
+
+# ═══════════════════════ 卸载 ═══════════════════════
+if [ "$ACTION" = "uninstall" ]; then
+  say "\n${B}卸载 Claude Usage 挂件$R\n"
+
+  if WD=$(find_widgets_dir); then
+    rm -rf "$WD/claude-usage.widget" && good "已移除挂件"
+  fi
+
+  if [ -f "$SETTINGS" ]; then
+    osascript -l JavaScript -e '
+      ObjC.import("Foundation");
+      var p = ObjC.unwrap($.NSProcessInfo.processInfo.environment.objectForKey("SETTINGS"));
+      var raw = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null));
+      var cfg = JSON.parse(raw);
+      if (cfg.statusLine && String(cfg.statusLine.command || "").indexOf("claude-usage-statusline") >= 0) {
+        delete cfg.statusLine;
+        var s = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
+        s.writeToFileAtomicallyEncodingError(p, true, $.NSUTF8StringEncoding, null);
+        "removed";
+      } else { "kept"; }
+    ' >/dev/null 2>&1 && good "已从 settings.json 移除 statusLine"
+  fi
+
+  rm -rf "$STATE" && good "已清除缓存与快照"
+  say "\n${DIM}完成。Übersicht 本身没有动，如果不再需要可以自行删除。$R\n"
+  exit 0
+fi
+
+# ═══════════════════════ 安装 ═══════════════════════
+say "\n${B}Claude Usage 桌面挂件$R ${DIM}· 安装$R\n"
+
+[ -d "$WIDGET_SRC" ] || die "找不到 claude-usage.widget，请在解压后的文件夹里运行本脚本"
+
+# ── 1. statusLine 脚本 ──
+step "安装 statusLine 脚本"
+mkdir -p "$BIN" || die "无法创建 $BIN"
+cp "$WIDGET_SRC/bin/claude-usage-statusline.sh" "$STATUSLINE" || die "复制失败"
+chmod +x "$STATUSLINE"
+good "$STATUSLINE"
+
+# ── 2. 配置 settings.json ──
+step "配置 Claude Code 的 statusLine"
+mkdir -p "$HOME/.claude"
+[ -f "$SETTINGS" ] || echo '{}' > "$SETTINGS"
+
+BACKUP="$SETTINGS.bak.$(date +%Y%m%d%H%M%S)"
+cp "$SETTINGS" "$BACKUP"
+
+SETTINGS="$SETTINGS" STATUSLINE="$STATUSLINE" osascript -l JavaScript <<'JXA' > /tmp/claude_usage_install_result 2>/tmp/claude_usage_install_err
+ObjC.import("Foundation");
+var env = $.NSProcessInfo.processInfo.environment;
+var path = ObjC.unwrap(env.objectForKey("SETTINGS"));
+var cmd  = ObjC.unwrap(env.objectForKey("STATUSLINE"));
+
+var raw = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(path, $.NSUTF8StringEncoding, null));
+// 解析失败时绝不能当成空对象写回去 —— 那会抹掉用户原有的全部配置
+var cfg;
+try { cfg = JSON.parse(raw); } catch (e) { cfg = null; }
+if (cfg === null || typeof cfg !== "object" || Array.isArray(cfg)) {
+  "UNPARSEABLE";
+} else {
+
+var existing = cfg.statusLine ? String(cfg.statusLine.command || "") : "";
+var result;
+if (existing && existing.indexOf("claude-usage-statusline") < 0) {
+  result = "CONFLICT\t" + existing;
+} else {
+  cfg.statusLine = { type: "command", command: cmd, padding: 0 };
+  var out = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
+  var ok = out.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+  result = ok ? "OK" : "FAIL";
+}
+result;
+}
+JXA
+
+RESULT=$(cat /tmp/claude_usage_install_result 2>/dev/null)
+rm -f /tmp/claude_usage_install_result /tmp/claude_usage_install_err
+
+case "$RESULT" in
+  OK*)
+    good "settings.json 已更新（备份：$(basename "$BACKUP")）"
+    ;;
+  CONFLICT*)
+    OLD=$(printf '%s' "$RESULT" | cut -f2-)
+    warn "你已经配了别的 statusLine，没有覆盖它："
+    printf "    ${DIM}%s$R\n" "$OLD"
+    printf "\n    想两个都要的话，把你原来的脚本改成把 stdin 转发给我们的脚本：\n"
+    printf "    ${DIM}INPUT=\$(cat); printf '%%s' \"\$INPUT\" | %s\n" "$STATUSLINE"
+    printf "    printf '%%s' \"\$INPUT\" | 你原来的脚本$R\n"
+    rm -f "$BACKUP"
+    ;;
+  UNPARSEABLE*)
+    warn "settings.json 不是合法 JSON，没有改动它。修好之后重跑本脚本，或手动加入："
+    printf "    ${DIM}\"statusLine\": { \"type\": \"command\", \"command\": \"%s\" }$R\n" "$STATUSLINE"
+    rm -f "$BACKUP"
+    ;;
+  *)
+    warn "settings.json 写入失败，请手动加入："
+    printf "    ${DIM}\"statusLine\": { \"type\": \"command\", \"command\": \"%s\" }$R\n" "$STATUSLINE"
+    ;;
+esac
+
+# ── 3. 安装挂件 ──
+step "安装桌面挂件"
+if ! WD=$(find_widgets_dir); then
+  if [ -d "/Applications/Übersicht.app" ]; then
+    WD="$HOME/Library/Application Support/Übersicht/widgets"
+    mkdir -p "$WD"
+  else
+    warn "没找到 Übersicht，请先安装："
+    printf "    ${DIM}brew install --cask ubersicht$R\n"
+    printf "    ${DIM}或从 https://tracesof.net/uebersicht/ 下载$R\n"
+    printf "\n    装好并打开一次之后，重新运行本脚本。\n\n"
+    exit 1
+  fi
+fi
+
+rm -rf "$WD/claude-usage.widget"
+cp -R "$WIDGET_SRC" "$WD/" || die "复制挂件失败"
+chmod +x "$WD/claude-usage.widget/lib/collect.sh" "$WD/claude-usage.widget/bin/claude-usage-statusline.sh" 2>/dev/null
+good "$WD/claude-usage.widget"
+
+# ── 4. 预热 + 刷新 ──
+step "预热数据缓存"
+printf "  ${DIM}首次要通读会话记录，约几秒…$R\n"
+if sh "$WD/claude-usage.widget/lib/collect.sh" > /tmp/claude_usage_probe 2>/dev/null; then
+  DAYS=$(grep -c '"d":' /tmp/claude_usage_probe 2>/dev/null || echo 0)
+  good "数据可用（已聚合 ${DAYS} 天）"
+else
+  warn "采集脚本返回异常，挂件仍会安装，稍后可自行排查"
+fi
+rm -f /tmp/claude_usage_probe
+
+# ── 5. 打开点击交互 ──
+# 折叠/展开按钮和主题色选择都需要 Übersicht 允许点击挂件。
+# 这是 Übersicht 的全局开关，它按鼠标是否悬停在挂件上动态生效，
+# 不会把桌面空白处的点击吃掉。
+step "启用挂件点击交互"
+WAS=$(defaults read tracesOf.Uebersicht enableInteraction 2>/dev/null)
+if [ "$WAS" = "1" ]; then
+  good "已经是开启状态"
+  NEED_RESTART=0
+else
+  defaults write tracesOf.Uebersicht enableInteraction -bool true
+  good "已开启（Übersicht 偏好设置 → Interaction 可随时关掉）"
+  NEED_RESTART=1
+fi
+
+step "启动 Übersicht"
+if [ "$NEED_RESTART" = "1" ] || [ -z "$(ub_pid)" ]; then
+  BEFORE=$(ub_pid)
+  if restart_ubersicht; then
+    AFTER=$(ub_pid)
+    if [ -n "$BEFORE" ] && [ "$BEFORE" = "$AFTER" ]; then
+      warn "Übersicht 没能重启（PID 仍是 ${BEFORE}），点击交互可能未生效"
+      printf "    ${DIM}请手动退出 Übersicht 再打开一次$R\n"
+    else
+      good "已重启（PID ${AFTER}）"
+    fi
+  else
+    warn "Übersicht 未能启动，请手动打开"
+  fi
+else
+  osascript -e 'tell application "Übersicht" to refresh' >/dev/null 2>&1
+  good "已刷新（PID $(ub_pid)）"
+fi
+
+say "\n${B}装好了。$R\n"
+printf "${DIM}挂件现在应该在桌面右上角。如果只看到「还没拿到订阅额度」，$R\n"
+printf "${DIM}那是正常的 —— 5h / 7d 百分比要由一个运行中的 Claude Code 会话喂给它，$R\n"
+printf "${DIM}随便开一个 claude 会话说句话，几秒后挂件就会亮起来。$R\n\n"
+printf "  ${DIM}拖动：$R    按住药丸拖；展开后按住顶栏拖。双击左上圆点归位\n"
+printf "  ${DIM}展开：$R    点药丸右侧的箭头（展开后可选主题色）\n"
+printf "  ${DIM}调位置：$R  编辑 %s/claude-usage.widget/index.jsx 顶部的 POSITION\n" "$WD"
+printf "  ${DIM}临时隐藏：$R 菜单栏 Übersicht 图标 → 点挂件名切换显示\n"
+printf "  ${DIM}卸载：$R    sh install.sh --uninstall\n\n"
