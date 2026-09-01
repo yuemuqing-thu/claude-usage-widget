@@ -2,10 +2,11 @@
 
 # Claude Usage
 
-**贴在桌面上的毛玻璃小卡片，实时显示 Claude 订阅额度还剩多少。**
-**外加一只会跟着鼠标跑的像素猫。**
+**桌面上的一张毛玻璃小卡片，随时告诉你 Claude 额度还剩多少。**
 
-<img src="docs/walk.gif" width="384" alt="小猫走路">
+**外加一只住在桌面上的像素猫。**
+
+<img src="docs/walk.gif" width="420" alt="小猫走路">
 
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
@@ -15,129 +16,95 @@
 
 ---
 
-## 🐾 桌面小猫
+## 🐾 小猫
 
-它住在你的桌面上，不是在某个窗口里。
+它是真的在你桌面上跑，不在任何窗口里 —— 你切换应用、拖窗口，它都在。
 
+<div align="center">
 <table>
 <tr>
-<td align="center" width="25%">
-<img src="docs/idle.gif" width="110" alt="待机"><br>
-<b>待机</b><br>
-<sub>尾巴摆动 · 随机眨眼</sub>
+<td align="center" width="180">
+<img src="docs/idle.gif" width="108" alt="待机"><br>
+<b>发呆</b><br>
+<sub>尾巴晃来晃去，偶尔眨个眼</sub>
 </td>
-<td align="center" width="25%">
-<img src="docs/walk.gif" width="240" alt="跟着鼠标走"><br>
-<b>跟着鼠标走</b><br>
-<sub>起伏 + 摇摆 + 交替抬腿</sub>
+<td align="center" width="180">
+<img src="docs/sleep.gif" width="132" alt="睡觉"><br>
+<b>睡着了</b><br>
+<sub>十几秒没人理它就趴下</sub>
 </td>
-<td align="center" width="25%">
-<img src="docs/sleep.gif" width="130" alt="睡觉"><br>
-<b>睡觉</b><br>
-<sub>15 秒没动静就趴下</sub>
-</td>
-<td align="center" width="25%">
-<img src="docs/coats.gif" width="110" alt="六种花色"><br>
-<b>六种花色</b><br>
-<sub>橘 灰 黑 奶白 三花 暹罗</sub>
+<td align="center" width="180">
+<img src="docs/coats.gif" width="108" alt="六种花色"><br>
+<b>换毛</b><br>
+<sub>橘 · 灰 · 黑 · 奶白 · 三花 · 暹罗</sub>
 </td>
 </tr>
 </table>
+</div>
 
-**点它就是摸摸**，会眯起眼睛、蹦一下、冒爱心。互动会累积亲密度。
+**戳它一下。** 它会眯起眼睛蹦一下、头顶冒个爱心，然后继续该干嘛干嘛。
 
-### 五种玩法
+摸得多了它会记住你 —— 展开面板右边那个 `♥` 就是攒下来的次数。
 
-<img src="docs/items.png" width="321" alt="道具">
+### 陪它玩
+
+<div align="center"><img src="docs/items.png" width="321" alt="道具"></div>
 
 | | | |
 |---|---|---|
-| 🐟 | **投喂** | 丢条小鱼，猫跑过去吃掉 |
-| 🧶 | **毛线球** | 扑过去玩 |
-| 🔴 | **激光笔** | 红点在桌面乱窜 13 秒，猫疯狂追 —— 追到就立刻换位置，永远抓不到 |
-| 📦 | **纸箱** | 钻进去坐着 14 秒，只露头和耳朵，还会哼歌 ♪ |
-| 🐦 | **小鸟** | 猫会**放慢到潜行速度**接近，靠太近鸟就飞走 |
+| 🐟 | **小鱼** | 丢下去，它会颠颠地跑过去吃掉 |
+| 🧶 | **毛线球** | 扑上去打两下 |
+| 🔴 | **激光笔** | 红点满桌乱窜十几秒，它疯狂追 —— 快追到就换地方，一辈子抓不着 |
+| 📦 | **纸箱** | 钻进去坐着，只露个头和耳朵，还哼歌 ♪ |
+| 🐦 | **小鸟** | 它会压低身子慢慢摸过去，靠太近鸟就飞了 |
 
 ---
 
 ## 📊 用量挂件
 
-**折叠态**（默认）—— 244px 宽的玻璃药丸，只看额度：
+平时是一颗药丸，只显示两个数字。点右边的箭头展开，才看得到全部。
 
-```
-╭──────────────────────────────────────╮
-│  ●   5 小时          7 天         ⌄  │
-│      53%             14%             │
-│      ▬▬▬▬▬▬▬▭▭▭▭▭    ▬▬▭▭▭▭▭▭▭▭▭     │
-╰──────────────────────────────────────╯
-```
+<!-- SCREENSHOTS -->
 
-点右边的箭头**展开**：
-
-```
-╭────────────────────────────────────────╮
-│  ● CLAUDE USAGE               刚刚  ⌃  │
-│                                        │
-│       ╭────╮       │      ╭────╮       │
-│       │53% │       │      │14% │       │
-│       ╰────╯       │      ╰────╯       │
-│     5 小时会话      │     7 天周额度     │
-│    3小时12分后重置   │    4天17小时后重置  │
-│                                        │
-│  当前会话上下文 ▬▬▭▭▭▭▭▭▭▭▭▭▭▭▭  18%    │
-│ ┌────────────────────────────────────┐ │
-│ │ 近 14 天                      $61  │ │
-│ │ ▁ ▁ ▁ ▂ ▅ ▃ ▇ █ ▄ ▂ ▁ ▃ ▆ █        │ │
-│ └────────────────────────────────────┘ │
-│ ┌────────────────────────────────────┐ │
-│ │ 活动热力图                   91 天  │ │
-│ │  5月 6月       7月       8月        │ │
-│ │  日 · · · · · · · · · · · · ·      │ │
-│ │  一 · · · · · · ▆ · · █ · · ▆      │ │
-│ │  二 · · · · · · · · ▃ █ · · ▆      │ │
-│ │  三 · · · · · · · · █ · · ·        │ │
-│ │  四 · · · · · · · ▁ ▃ ▆ · ▁        │ │
-│ │  五 · · · · · ▃ · ▁ ▃ · · ▁        │ │
-│ │  六 · · · · · · · · · · · ·        │ │
-│ │  少 ▫ ▪ ◾ ◼ 多                     │ │
-│ └────────────────────────────────────┘ │
-│  $22.5      30.9M          Opus 5      │
-│  今日       今日 token      92% 占比    │
-│  ● ● ● ● ●   ← 主题色                  │
-╰────────────────────────────────────────╯
-```
-
-> 上面是布局示意。真机截图欢迎 PR。
+展开后能看到：**5 小时**和**7 天**两个额度环、当前会话的上下文占用、近 14 天的花费柱状图、91 天活动热力图、今日 token 和主力模型占比。底下一排是主题色和小猫的开关。
 
 ---
 
 ## 安装
 
-### 有 Homebrew
+### 让 Claude Code 替你装
+
+最省事的办法 —— 把这句话丢给 Claude Code：
+
+```
+帮我装 https://github.com/yuemuqing-thu/claude-usage-widget
+```
+
+它会读 README 自己搞定。
+
+### 自己动手（有 Homebrew）
 
 ```sh
 brew install yuemuqing-thu/tap/claude-usage-widget
 claude-usage-widget install
 ```
 
-第二条会自动把 [Übersicht](https://tracesof.net/uebersicht/)（挂件的宿主，免费开源、已签名公证）也装上，你不用管那是什么。
+第二条会顺手把 [Übersicht](https://tracesof.net/uebersicht/) 一起装上。
 
-装完桌面右上角就有了。**打开展开面板里的爪印开关，猫就出来了。**
+装完桌面右上角就有了。**点开箭头，打开里面的爪印开关，猫就出来了。**
 
 ### 没有 Homebrew
 
-Homebrew 是 macOS 上的软件包管理器。先装它（[官网](https://brew.sh)的标准命令，复制粘贴到「终端」里回车）：
+Homebrew 是 macOS 上装软件用的工具。打开「终端」，粘贴这行回车（[官网](https://brew.sh)原文）：
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-装完它会提示你再跑两行 `echo ... >> ~/.zprofile` 之类的命令把 brew 加进 PATH，**照着提示做完**，然后回到上一节。
+装完它会让你再跑一两行命令把 brew 加进 PATH，**照着屏幕上的提示做完**，然后回到上一节。
 
 <details>
-<summary>完全不想碰 Homebrew？</summary>
-
-直接下载源码也行：
+<summary>完全不想碰 Homebrew</summary>
 
 ```sh
 git clone https://github.com/yuemuqing-thu/claude-usage-widget.git
@@ -145,29 +112,32 @@ cd claude-usage-widget
 sh install.sh
 ```
 
-这样得自己先装 Übersicht：`brew install --cask ubersicht`，或从[官网](https://tracesof.net/uebersicht/)下载。
+这样得自己先装 Übersicht：从[官网](https://tracesof.net/uebersicht/)下载拖进「应用程序」即可。
 
 </details>
 
 ### 卸载
 
 ```sh
-claude-usage-widget uninstall
+claude-usage-widget uninstall          # 撤掉挂件、还原配置、清缓存
+brew uninstall claude-usage-widget     # 删掉命令本身
+brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为这个装的）
 ```
-
-会撤掉 statusLine 配置、删掉挂件和缓存。Übersicht 本身不动。
 
 ---
 
 ## 需要什么
 
 - macOS 12 以上
-- [Claude Code](https://claude.com/claude-code)（额度百分比要靠它的 statusLine 喂过来）
-- 就这些。挂件本体只用 macOS 自带的 `sh` / `awk` / `osascript`，**不需要 Node、Python、jq**
+- [Claude Code](https://claude.com/claude-code) —— 那两个额度环要靠它喂数据
+- 没了。挂件只用 macOS 自带的 `sh` / `awk` / `osascript`，**不需要 Node、Python、jq**
 
 ---
 
-## 移动位置 · 临时隐藏 · 彻底关掉
+<details>
+<summary><b>怎么挪位置 · 临时藏起来 · 彻底关掉</b></summary>
+
+### 移动位置 · 临时隐藏 · 彻底关掉
 
 Übersicht 挂件贴在壁纸层，**没有自带的拖动和关闭按钮**，所以这三件事分别是：
 
@@ -204,7 +174,15 @@ const POSITION = { top: "48px", right: "48px" };   // 想靠左就把 right 换�
 它按鼠标是否悬停在挂件上动态生效，**不会把桌面空白处的点击吃掉** —— 桌面右键、拖选图标都正常。不想要的话在偏好设置里关掉即可，只是箭头和主题色就点不动了。
 
 ---
-## 小猫是怎么做出来的
+
+</details>
+
+## 深入了解
+
+<details>
+<summary><b>小猫是怎么做出来的 —— 从一张 AI 生成图反解成精灵图</b></summary>
+
+### 小猫是怎么做出来的
 
 不是手画的，是**从一张参考图反解出来的**：
 
@@ -230,7 +208,12 @@ const POSITION = { top: "48px", right: "48px" };   // 想靠左就把 right 换�
 
 精灵图里的帧都是**没有眼睛**的，眼睛由运行时按锚点叠贴片 —— 这样眨眼、眯眼、半睁只要换贴片，不用为每种眼神各存一套帧。
 
-## 数据是从哪来的
+</details>
+
+<details>
+<summary><b>数据是从哪来的 —— 两条完全独立的来源</b></summary>
+
+### 数据是从哪来的
 
 两路，各管一半：
 
@@ -290,7 +273,12 @@ Claude Code 有个叫 **statusLine** 的扩展点：你配一个命令，它每�
 
 ---
 
-## Claude 的用量机制是怎么算的
+</details>
+
+<details>
+<summary><b>Claude 的用量机制是怎么算的</b></summary>
+
+### Claude 的用量机制是怎么算的
 
 ### 计量单位是 token，不是消息条数
 
@@ -342,7 +330,12 @@ claude.ai 网页版聊天、Claude Code、Cowork 走的是**同一个池子**。
 
 ---
 
-## 自定义
+</details>
+
+<details>
+<summary><b>自定义 —— 位置、主题色、折叠状态</b></summary>
+
+### 自定义
 
 编辑 `~/Library/Application Support/Übersicht/widgets/claude-usage.widget/index.jsx`：
 
@@ -373,7 +366,12 @@ claude.ai 网页版聊天、Claude Code、Cowork 走的是**同一个池子**。
 
 也记在 `localStorage`（键是 `cu.open` 和 `cu.theme`）。想强制重置，在 Übersicht 的 Debug 控制台里跑 `localStorage.clear()`。
 
-## 已经配了别的 statusLine？
+</details>
+
+<details>
+<summary><b>已经配了别的 statusLine？</b></summary>
+
+### 已经配了别的 statusLine？
 
 `install.sh` 检测到会**停手不覆盖**，并提示你怎么串起来。手动改法是把你原来的脚本改成先转发一份 stdin：
 
@@ -387,7 +385,12 @@ printf '%s' "$INPUT" | 你原来的脚本
 
 ---
 
-## 文件结构
+</details>
+
+<details>
+<summary><b>文件结构</b></summary>
+
+### 文件结构
 
 ```
 claude-usage-widget/
@@ -412,7 +415,12 @@ claude-usage-widget/
 ~/Library/Application Support/Übersicht/widgets/claude-usage.widget/
 ```
 
-## 排查
+</details>
+
+<details>
+<summary><b>排查 —— 挂件没出现 / 数字不动 / 点不动</b></summary>
+
+### 排查
 
 **两个环一直显示「还没拿到订阅额度」**
 statusLine 没生效。`cat ~/.claude/settings.json` 看 `statusLine` 字段在不在，然后新开一个 `claude` 会话（已经开着的会话不会重新读配置）。用 API key 而非订阅登录的话本来就没有这两个数。
@@ -439,15 +447,27 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 **数字和 `/usage` 对不上**
 环里的百分比就是 `/usage` 的数（同一来源）。柱状图和 `$` 是本机 jsonl 算出来的，不含其他设备和网页版用量。
 
+</details>
+
+---
+
+## 想请我喝杯咖啡 ☕
+
+如果这只猫逗你开心了：
+
+<!-- DONATE -->
+
+不捐也完全没关系，点个 ⭐ 我也很高兴。
+
 ---
 
 ## 素材说明
 
-小猫的像素图**源自 AI 生成图**（用 Midjourney 和即梦生成参考图，再用脚本反解成精灵图 —— 过程见「小猫是怎么做出来的」）。
+小猫的像素图**源自 AI 生成图**（Midjourney 和即梦出参考图，再用脚本反解成精灵图 —— 过程见上面的折叠段）。
 
-代码按 MIT 授权。像素素材部分不主张版权，随便拿去用。
+代码 MIT 授权。像素素材不主张版权，随便拿去用。
 
 ## 致谢
 
 - [Übersicht](https://tracesof.net/uebersicht/) —— 桌面挂件宿主
-- 用量数据全部来自本机的 `~/.claude/`，**不联网、不上传任何东西**
+- 用量数据全部来自本机 `~/.claude/`，**不联网、不上传任何东西**
