@@ -1,8 +1,68 @@
-# Claude Usage — macOS 桌面挂件
+<div align="center">
 
-一个贴在桌面上的毛玻璃小卡片，实时显示你的 Claude 订阅额度用了多少。
+# Claude Usage
 
-**折叠态**（默认）——244px 宽的玻璃药丸，只看额度：
+**贴在桌面上的毛玻璃小卡片，实时显示 Claude 订阅额度还剩多少。**
+**外加一只会跟着鼠标跑的像素猫。**
+
+<img src="docs/walk.gif" width="384" alt="小猫走路">
+
+[![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+</div>
+
+---
+
+## 🐾 桌面小猫
+
+它住在你的桌面上，不是在某个窗口里。
+
+<table>
+<tr>
+<td align="center" width="25%">
+<img src="docs/idle.gif" width="110" alt="待机"><br>
+<b>待机</b><br>
+<sub>尾巴摆动 · 随机眨眼</sub>
+</td>
+<td align="center" width="25%">
+<img src="docs/walk.gif" width="240" alt="跟着鼠标走"><br>
+<b>跟着鼠标走</b><br>
+<sub>起伏 + 摇摆 + 交替抬腿</sub>
+</td>
+<td align="center" width="25%">
+<img src="docs/sleep.gif" width="130" alt="睡觉"><br>
+<b>睡觉</b><br>
+<sub>15 秒没动静就趴下</sub>
+</td>
+<td align="center" width="25%">
+<img src="docs/coats.gif" width="110" alt="六种花色"><br>
+<b>六种花色</b><br>
+<sub>橘 灰 黑 奶白 三花 暹罗</sub>
+</td>
+</tr>
+</table>
+
+**点它就是摸摸**，会眯起眼睛、蹦一下、冒爱心。互动会累积亲密度。
+
+### 五种玩法
+
+<img src="docs/items.png" width="321" alt="道具">
+
+| | | |
+|---|---|---|
+| 🐟 | **投喂** | 丢条小鱼，猫跑过去吃掉 |
+| 🧶 | **毛线球** | 扑过去玩 |
+| 🔴 | **激光笔** | 红点在桌面乱窜 13 秒，猫疯狂追 —— 追到就立刻换位置，永远抓不到 |
+| 📦 | **纸箱** | 钻进去坐着 14 秒，只露头和耳朵，还会哼歌 ♪ |
+| 🐦 | **小鸟** | 猫会**放慢到潜行速度**接近，靠太近鸟就飞走 |
+
+---
+
+## 📊 用量挂件
+
+**折叠态**（默认）—— 244px 宽的玻璃药丸，只看额度：
 
 ```
 ╭──────────────────────────────────────╮
@@ -47,22 +107,63 @@
 ╰────────────────────────────────────────╯
 ```
 
+> 上面是布局示意。真机截图欢迎 PR。
+
 ---
 
 ## 安装
 
-需要 [Übersicht](https://tracesof.net/uebersicht/)（免费、开源、已签名公证的桌面挂件宿主）：
+### 有 Homebrew
 
 ```sh
-brew install --cask ubersicht     # 没装过的话
+brew install yuemuqing-thu/tap/claude-usage-widget
+claude-usage-widget install
+```
+
+第二条会自动把 [Übersicht](https://tracesof.net/uebersicht/)（挂件的宿主，免费开源、已签名公证）也装上，你不用管那是什么。
+
+装完桌面右上角就有了。**打开展开面板里的爪印开关，猫就出来了。**
+
+### 没有 Homebrew
+
+Homebrew 是 macOS 上的软件包管理器。先装它（[官网](https://brew.sh)的标准命令，复制粘贴到「终端」里回车）：
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+装完它会提示你再跑两行 `echo ... >> ~/.zprofile` 之类的命令把 brew 加进 PATH，**照着提示做完**，然后回到上一节。
+
+<details>
+<summary>完全不想碰 Homebrew？</summary>
+
+直接下载源码也行：
+
+```sh
+git clone https://github.com/yuemuqing-thu/claude-usage-widget.git
+cd claude-usage-widget
 sh install.sh
 ```
 
-装完随便开一个 `claude` 会话说句话，几秒后挂件上的两个环就会亮起来。
+这样得自己先装 Übersicht：`brew install --cask ubersicht`，或从[官网](https://tracesof.net/uebersicht/)下载。
 
-卸载：`sh install.sh --uninstall`
+</details>
 
-**零依赖** —— 只用 macOS 自带的 `sh` / `awk` / `osascript`，不需要 jq、python、node。
+### 卸载
+
+```sh
+claude-usage-widget uninstall
+```
+
+会撤掉 statusLine 配置、删掉挂件和缓存。Übersicht 本身不动。
+
+---
+
+## 需要什么
+
+- macOS 12 以上
+- [Claude Code](https://claude.com/claude-code)（额度百分比要靠它的 statusLine 喂过来）
+- 就这些。挂件本体只用 macOS 自带的 `sh` / `awk` / `osascript`，**不需要 Node、Python、jq**
 
 ---
 
@@ -103,12 +204,7 @@ const POSITION = { top: "48px", right: "48px" };   // 想靠左就把 right 换�
 它按鼠标是否悬停在挂件上动态生效，**不会把桌面空白处的点击吃掉** —— 桌面右键、拖选图标都正常。不想要的话在偏好设置里关掉即可，只是箭头和主题色就点不动了。
 
 ---
-
-## 桌面小猫 🐾
-
-展开面板里有个爪印开关，打开后桌面上会多一只 32×36 的像素小猫。它会跟着鼠标走，点一下就是摸摸，二十几秒没动静会自己趴下睡着。
-
-### 这只猫是怎么来的
+## 小猫是怎么做出来的
 
 不是手画的，是**从一张参考图反解出来的**：
 
@@ -121,31 +217,6 @@ const POSITION = { top: "48px", right: "48px" };   // 想靠左就把 right 换�
 走路和趴睡都从这张底图衍生：**头（含耳朵和胡须）逐像素复用**，只换身体和四肢 —— 所以几个姿势换来换去还是同一只猫。
 
 走路是**正面摇摆**：整只上下起伏 + 左右晃 1 格 + 两条前腿交替抬起 2 格，底图 100% 复用。三样叠在一起才读得出在走 —— 只靠抬腿的话跟坐着几乎没区别。
-
-### 六种花色
-
-橘猫 / 灰猫 / 黑猫 / 奶白 / 三花 / 暹罗。
-
-精灵图只画一套，语义字符 + 可换调色板：
-
-```
-O 描边   D/d/f/l 毛色四阶   m/M 斑纹   o 次深
-w/W 白   N 眼珠   e 眼内米白   E 高光   p/P 鼻   c 项圈（跟随主题色）
-```
-
-加一种花色只要给这十几个色值。
-
-### 五种玩法 + 摸摸
-
-| | |
-|---|---|
-| 🐟 **投喂** | 丢条小鱼，猫会跑过去吃掉 |
-| 🧶 **毛线球** | 扑过去玩 |
-| 🔴 **激光笔** | 红点在桌面乱窜约 13 秒，猫疯狂追，追到就立刻换位置 —— 永远抓不到 |
-| 📦 **纸箱** | 钻进去坐着待 14 秒，只露头和耳朵，还会哼歌 ♪ |
-| 🐦 **小鸟** | 猫会**放慢到潜行速度**接近，靠太近鸟就飞走 |
-
-再加上点击摸摸，一共六种。目标优先级：激光 > 小鸟 > 道具 > 纸箱 > 鼠标。
 
 ### 亲密度
 
@@ -319,19 +390,27 @@ printf '%s' "$INPUT" | 你原来的脚本
 ## 文件结构
 
 ```
-claude-usage.widget/
-├── index.jsx                      挂件本体（UI + 样式 + 交互）
-├── lib/
-│   ├── collect.sh                 数据命令：增量扫描 + 合并两路数据
-│   ├── scan.awk                   从 jsonl 提取 token 用量
-│   └── merge.awk                  聚合 + 计价 + 输出 JSON
-└── bin/
-    └── claude-usage-statusline.sh Claude Code statusLine：打印状态栏 + 快照额度
+claude-usage-widget/
+├── install.sh                    安装 / 卸载（brew 装完后就是 claude-usage-widget 命令）
+├── claude-usage.widget/
+│   ├── index.jsx                 挂件本体：布局、样式、小猫运行时、精灵图数据
+│   ├── bin/
+│   │   └── claude-usage-statusline.sh   Claude Code 的 statusLine，顺便写额度快照
+│   └── lib/
+│       ├── collect.sh            调度：增量扫描 + 缓存
+│       ├── scan.awk              从 jsonl 里抽 token 用量，按本地日期分桶
+│       └── merge.awk             聚合、计价、吐 JSON
+└── docs/                         README 里那几个 GIF
 ```
 
-数据写在 `~/.claude/usage-widget/`（`snapshot.env` 快照 + `cache/` 增量缓存），卸载时会一并清掉。**不联网，不上传任何东西。**
+装到系统里之后：
 
----
+```
+~/.claude/usage-widget/bin/        statusLine 脚本
+~/.claude/usage-widget/snapshot.env 额度快照（statusLine 每次刷新时写）
+~/.claude/usage-widget/cache/      每个 jsonl 一个 .agg 增量缓存
+~/Library/Application Support/Übersicht/widgets/claude-usage.widget/
+```
 
 ## 排查
 
@@ -359,3 +438,16 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 
 **数字和 `/usage` 对不上**
 环里的百分比就是 `/usage` 的数（同一来源）。柱状图和 `$` 是本机 jsonl 算出来的，不含其他设备和网页版用量。
+
+---
+
+## 素材说明
+
+小猫的像素图**源自 AI 生成图**（用 Midjourney 和即梦生成参考图，再用脚本反解成精灵图 —— 过程见「小猫是怎么做出来的」）。
+
+代码按 MIT 授权。像素素材部分不主张版权，随便拿去用。
+
+## 致谢
+
+- [Übersicht](https://tracesof.net/uebersicht/) —— 桌面挂件宿主
+- 用量数据全部来自本机的 `~/.claude/`，**不联网、不上传任何东西**
