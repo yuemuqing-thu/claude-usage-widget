@@ -189,11 +189,21 @@ if ! WD=$(find_widgets_dir); then
   if [ -d "/Applications/Übersicht.app" ]; then
     WD="$HOME/Library/Application Support/Übersicht/widgets"
     mkdir -p "$WD"
+  elif command -v brew >/dev/null 2>&1; then
+    # Homebrew 不允许 formula 依赖 cask，所以宿主只能在这一步自己拉。
+    warn "没找到 Übersicht（挂件的宿主），正在装……"
+    if brew install --cask ubersicht; then
+      WD="$HOME/Library/Application Support/Übersicht/widgets"
+      mkdir -p "$WD"
+      good "Übersicht 已装好"
+    else
+      die "Übersicht 安装失败，请手动跑：brew install --cask ubersicht"
+    fi
   else
     warn "没找到 Übersicht，请先安装："
     printf "    ${DIM}brew install --cask ubersicht$R\n"
     printf "    ${DIM}或从 https://tracesof.net/uebersicht/ 下载$R\n"
-    printf "\n    装好并打开一次之后，重新运行本脚本。\n\n"
+    printf "\n    装好之后重新运行。\n\n"
     exit 1
   fi
 fi
