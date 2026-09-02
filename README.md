@@ -70,13 +70,15 @@
 
 如果它让你的桌面变得有意思了那么一点点，可以在 [爱发电](https://ifdian.net/a/sonetto_zhou) 请我们吃点东西：
 
-<table width="100%">
+<div align="center">
+<table>
 <tr>
-<td align="center" width="33%"><b>🐟 小鱼干</b><br><sub>猫会记得你</sub></td>
-<td align="center" width="33%"><b>🥤 快乐水</b><br><sub>猫跑得更起劲</sub></td>
-<td align="center" width="33%"><b>☕ 咖啡</b><br><sub>我写得更起劲</sub></td>
+<td align="center" width="190"><b>🐟 小鱼干</b><br><sub>猫会记得你</sub></td>
+<td align="center" width="190"><b>🥤 快乐水</b><br><sub>猫更有劲了</sub></td>
+<td align="center" width="190"><b>☕ 咖啡</b><br><sub>我更有劲了</sub></td>
 </tr>
 </table>
+</div>
 
 **发电之后可以：**
 
