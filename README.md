@@ -14,6 +14,8 @@
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+**简体中文** · [English](README.en.md)
+
 </div>
 
 ---
@@ -186,6 +188,28 @@ claude-usage-widget uninstall          # 撤掉挂件、还原配置、清缓存
 brew uninstall claude-usage-widget     # 删掉命令本身
 brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为这个装的）
 ```
+
+### 也想看 Codex 的用量
+
+```sh
+claude-usage-widget codex on
+```
+
+打开之后展开面板的标题会变成 **Claude / Codex** 两个页签，点一下就切。
+
+> **打开前请知道**：Codex 没有 Claude Code 那样的 statusLine 钩子（它的状态栏只能从内置项里选），额度也不写进本地文件。所以要拿到那两个环，只能读 `~/.codex/auth.json` 里你已有的登录凭据，去问 ChatGPT 自己的后端接口。
+>
+> 凭据**只发给 chatgpt.com 本身**，不经任何第三方。这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」，不会影响 Claude 那边。
+>
+> 不想要了：`claude-usage-widget codex off`（连缓存和快照一起删）
+
+### 出问题了
+
+```sh
+claude-usage-widget doctor
+```
+
+会打印它找到了什么、哪一步断了。**所有值都脱敏**（token 只报长度，不报内容），输出可以直接截图发给别人看。
 
 ---
 
