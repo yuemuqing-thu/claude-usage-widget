@@ -65,15 +65,12 @@
 <table>
 <tr>
 <td width="58%" valign="top" align="center">
-
 <img src="docs/shot-pill.png" width="100%" alt="折叠态">
-
+<br>
 <sub><b>平时</b> —— 一颗药丸，两个数字，猫在旁边晒太阳</sub>
-
+<br><br>
 <div align="left">
-
 展开之后能看到：
-
 <ul>
 <li><b>5 小时</b> 和 <b>7 天</b> 两个额度环 —— 快满时自动变橙、变红</li>
 <li>当前会话的上下文占用</li>
@@ -81,19 +78,13 @@
 <li>91 天活动热力图</li>
 <li>今日 token、主力模型占比</li>
 </ul>
-
-最底下一排是主题色和小猫的开关。<br>
-一共五套配色，随时换。
-
+最底下一排是主题色和小猫的开关，一共五套配色，随时换。
 </div>
-
 </td>
 <td width="42%" valign="top" align="center">
-
 <img src="docs/shot-expanded.png" width="100%" alt="展开态">
-
+<br>
 <sub><b>点开箭头</b> —— 全都在里面</sub>
-
 </td>
 </tr>
 </table>
