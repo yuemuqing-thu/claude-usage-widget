@@ -84,7 +84,7 @@ case "$CMD" in
     say "  claude-usage-widget codex on     再打开"
     say "  claude-usage-widget doctor       打印诊断信息（值已脱敏，可以直接发给别人）"
     exit 0 ;;
-  *) die "未知命令：$CMD（可用：install / uninstall / codex / doctor）" ;;
+  *) die "未知命令：${CMD}（可用：install / uninstall / codex / doctor）" ;;
 esac
 
 STATE_DIR="$HOME/.claude/usage-widget"
@@ -112,7 +112,7 @@ if [ "$ACTION" = "codex" ]; then
       if [ -f "$STATE_DIR/codex.off" ]; then
         say "Codex 支持：已被手动关闭"
       elif [ -d "$_ch" ]; then
-        say "Codex 支持：已启用（检测到 $_ch）"
+        say "Codex 支持：已启用（检测到 ${_ch}）"
       else
         say "Codex 支持：默认启用，但没找到 $_ch —— 装了 Codex 就会自动生效"
       fi
