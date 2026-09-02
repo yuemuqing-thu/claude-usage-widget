@@ -70,7 +70,7 @@ const I18N = {
     catCoats: { orange: "橘猫", grey: "灰猫", black: "黑猫", cream: "奶白", calico: "三花", siam: "暹罗" },
     wantCoffee: "{0}想喝咖啡了", aCat: "小猫", namePh: "给它起个名字",
     nameLocked: "摸满 {0} 次就能给它起名字", loveEgg: "Love {0}",
-    langTip: "切换到英文",
+    langTip: "切换到英文", coffeeTip: "请我喝杯咖啡 ☕",
   },
   en: {
     expand: "Expand / collapse", home: "Double-click to reset", loading: "Reading usage…", err: "Script error: ",
@@ -89,7 +89,7 @@ const I18N = {
     catCoats: { orange: "Ginger", grey: "Grey", black: "Black", cream: "Cream", calico: "Calico", siam: "Siamese" },
     wantCoffee: "{0} wants a coffee", aCat: "The cat", namePh: "Name your cat",
     nameLocked: "Pet it {0} times to unlock naming", loveEgg: "Love {0}",
-    langTip: "Switch to Chinese",
+    langTip: "Switch to Chinese", coffeeTip: "Buy me a coffee ☕",
   },
 };
 const curLang = () => {
@@ -1090,6 +1090,10 @@ export const render = ({ output, error }) => {
           <label htmlFor="cu-pet-sw" className="petSw" title={t("plays")} onMouseDown={stop}>
             <span className="petPaw">🐾</span>
           </label>
+          <button className="coffeeSw" title={t("coffeeTip")} onMouseDown={stop}
+                  onClick={() => { try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {} }}>
+            ☕
+          </button>
         </div>
 
         {/* 小猫面板：开关打开后才展开 */}
@@ -1397,6 +1401,18 @@ export const className = `
     transition: color 200ms ease, background 200ms ease;
   }
   .langSw:hover { color: rgba(245,245,247,0.85); background: rgba(255,255,255,0.12); }
+  /* 咖啡按钮：那一排的最后一个，也就是展开卡片的右下角 */
+  .coffeeSw {
+    -webkit-appearance: none; appearance: none; border: none; outline: none;
+    cursor: pointer; padding: 2px 5px; margin-left: 1px;
+    font-size: 12px; line-height: 1; border-radius: 7px;
+    background: transparent; opacity: 0.42;
+    transition: opacity 200ms ease, background 200ms ease, transform 260ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .coffeeSw:hover {
+    opacity: 1; background: rgba(255,255,255,0.12); transform: scale(1.14);
+  }
+  .coffeeSw:active { transform: scale(0.94); }
   .langSw .en { display: none; }
   #cu-lang:checked ~ .body .langSw .zh { display: none; }
   #cu-lang:checked ~ .body .langSw .en { display: inline; }
