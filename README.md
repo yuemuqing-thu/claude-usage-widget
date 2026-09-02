@@ -25,23 +25,24 @@
 <div align="center">
 <table>
 <tr>
-<td align="center" width="180">
+<td align="center" width="190">
 <img src="docs/idle.gif" width="108" alt="待机"><br>
 <b>发呆</b><br>
-<sub>尾巴晃来晃去，偶尔眨个眼</sub>
+<sub>尾巴晃，偶尔眨眼</sub>
 </td>
-<td align="center" width="180">
+<td align="center" width="190">
 <img src="docs/sleep.gif" width="132" alt="睡觉"><br>
 <b>睡着了</b><br>
-<sub>十几秒没人理它就趴下</sub>
+<sub>没人理就自己趴下</sub>
 </td>
-<td align="center" width="180">
+<td align="center" width="190">
 <img src="docs/coats.gif" width="108" alt="六种花色"><br>
 <b>换毛</b><br>
-<sub>橘 · 灰 · 黑 · 奶白 · 三花 · 暹罗</sub>
+<sub>六种花色随时换</sub>
 </td>
 </tr>
 </table>
+<sub>橘猫 · 灰猫 · 黑猫 · 奶白 · 三花 · 暹罗</sub>
 </div>
 
 **戳它一下。** 它会眯起眼睛蹦一下、头顶冒个爱心，然后继续该干嘛干嘛。
@@ -74,8 +75,8 @@
 <table>
 <tr>
 <td align="center" width="190"><b>🐟 小鱼干</b><br><sub>猫会记得你</sub></td>
-<td align="center" width="190"><b>🥤 快乐水</b><br><sub>猫更有劲了</sub></td>
-<td align="center" width="190"><b>☕ 咖啡</b><br><sub>我更有劲了</sub></td>
+<td align="center" width="190"><b>🥤 快乐水</b><br><sub>猫猫更可爱</sub></td>
+<td align="center" width="190"><b>☕ 咖啡</b><br><sub>加班写代码</sub></td>
 </tr>
 </table>
 </div>
