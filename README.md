@@ -2,7 +2,7 @@
 
 # Claude Usage
 
-**桌面上的一张毛玻璃小卡片，随时告诉你 Claude 额度还剩多少。**
+**桌面上的一张毛玻璃小卡片，随时告诉你 Claude 和 Codex 的额度还剩多少。**
 
 **外加一只住在桌面上的像素猫。**
 
@@ -13,6 +13,7 @@
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Codex](https://img.shields.io/badge/Claude%20%2B%20Codex-both-6C7BFF)](#也想看-codex-的用量)
 
 **简体中文** · [English](README.en.md)
 
@@ -191,17 +192,16 @@ brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为
 
 ### 也想看 Codex 的用量
 
-```sh
-claude-usage-widget codex on
-```
+**不用做任何事** —— 装了 Codex 就自动一起显示，展开面板的标题会变成 **Claude / Codex** 两个页签，点一下就切。
 
-打开之后展开面板的标题会变成 **Claude / Codex** 两个页签，点一下就切。
-
-> **打开前请知道**：Codex 没有 Claude Code 那样的 statusLine 钩子（它的状态栏只能从内置项里选），额度也不写进本地文件。所以要拿到那两个环，只能读 `~/.codex/auth.json` 里你已有的登录凭据，去问 ChatGPT 自己的后端接口。
+> **它会做什么，说清楚。** Codex 没有 Claude Code 那样的 statusLine 钩子（它的状态栏只能从内置项里选，不能跑自定义脚本），额度也不写进本地文件。所以要拿到那两个环，只能读 `~/.codex/auth.json` 里**你已有的登录凭据**，去问 ChatGPT 自己的后端接口。
 >
-> 凭据**只发给 chatgpt.com 本身**，不经任何第三方。这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」，不会影响 Claude 那边。
+> - 凭据**只发给 chatgpt.com 本身**，不经任何第三方
+> - 柱状图和热力图读的是本机会话记录，**不联网**
+> - 这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」，不影响 Claude 那边
+> - **机器上没有 `~/.codex` 就完全不触发** —— 不读凭据，也不发任何请求
 >
-> 不想要了：`claude-usage-widget codex off`（连缓存和快照一起删）
+> 不想要：`claude-usage-widget codex off`（连缓存和快照一起删）
 
 ### 出问题了
 
@@ -545,4 +545,5 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 ## 致谢
 
 - [Übersicht](https://tracesof.net/uebersicht/) —— 桌面挂件宿主
-- 用量数据全部来自本机 `~/.claude/`，**不联网、不上传任何东西**
+- 用量数据来自本机的 `~/.claude/` 和 `~/.codex/`，**不上传任何东西**
+- 只有一处联网：装了 Codex 时，用你本机的凭据向 `chatgpt.com` 官方接口查额度。没装就全程离线

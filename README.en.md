@@ -2,7 +2,7 @@
 
 # Claude Usage
 
-**A frosted-glass card on your desktop that tells you how much Claude quota is left.**
+**A frosted-glass card on your desktop that tells you how much Claude and Codex quota is left.**
 
 **Plus a pixel cat that lives there.**
 
@@ -13,6 +13,7 @@
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#install)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Codex](https://img.shields.io/badge/Claude%20%2B%20Codex-both-6C7BFF)](#codex-too)
 
 [简体中文](README.md) · **English**
 
@@ -106,6 +107,8 @@ Nobody yet. First spot is yours 🐾
 
 ## 📊 The widget
 
+**Works with Claude and Codex.** Whichever you have installed shows up; if you have both, tabs in the header switch between them.
+
 <table>
 <tr>
 <td width="58%" valign="top" align="center">
@@ -181,19 +184,18 @@ You'll need Übersicht yourself: grab it from [the site](https://tracesof.net/ue
 
 </details>
 
-### Codex too?
+### Codex too
 
-```sh
-claude-usage-widget codex on
-```
+**Nothing to do** — if Codex is installed it shows up automatically. The panel header turns into **Claude / Codex** tabs; click to switch.
 
-The panel header turns into **Claude / Codex** tabs. Click to switch.
-
-> **Read this before turning it on.** Codex has no statusLine hook the way Claude Code does — its status bar only takes built-in items, not custom scripts — and quota numbers never touch disk. The only way to get those two rings is to read the login credentials already sitting in `~/.codex/auth.json` and ask ChatGPT's own backend.
+> **Here's exactly what it does.** Codex has no statusLine hook the way Claude Code does — its status bar only takes built-in items, not custom scripts — and quota numbers never touch disk. The only way to get those two rings is to read the login credentials **already sitting in** `~/.codex/auth.json` and ask ChatGPT's own backend.
 >
-> Credentials go **to chatgpt.com and nowhere else** — no third-party service is involved. It's an undocumented endpoint, so OpenAI can change it at any time; if that happens it quietly falls back to "no data" and Claude keeps working.
+> - Credentials go **to chatgpt.com and nowhere else** — no third party is involved
+> - The bar chart and heatmap are computed from local session files, **no network**
+> - It's an undocumented endpoint, so OpenAI can change it at any time. If that happens it quietly falls back to "no data" and Claude keeps working
+> - **No `~/.codex` on your machine means none of this runs** — no credential read, no requests
 >
-> Changed your mind: `claude-usage-widget codex off` (wipes the cache and snapshot too).
+> Don't want it: `claude-usage-widget codex off` (wipes the cache and snapshot too).
 
 ### Something's wrong
 
@@ -229,7 +231,7 @@ Two independent sources, and it's worth knowing which is which:
 
 **Everything else** — the bar chart, the heatmap, the token counts — is computed locally from `~/.claude/projects/**/*.jsonl`, the transcripts Claude Code already writes. Those files are append-only, so the collector tracks a byte offset per file and only reads what's new. First run takes a couple of seconds; after that it's a few milliseconds.
 
-**Nothing is uploaded.** With Codex off, the widget makes no network requests at all.
+**Nothing is uploaded.** Without Codex installed, the widget makes no network requests at all. With it, the only outbound call is to `chatgpt.com` for your own quota numbers.
 
 > The dollar figures are *equivalent* cost — what the same tokens would run on pay-as-you-go API pricing. On a subscription you don't pay them. It's there to compare days against each other, not to predict a bill.
 
@@ -254,4 +256,5 @@ Code is MIT. The pixel art makes no copyright claim — take it.
 ## Thanks
 
 - [Übersicht](https://tracesof.net/uebersicht/) — the desktop widget host
-- All usage data is read from `~/.claude/` on your own machine. **No network, nothing uploaded.**
+- Usage data is read from `~/.claude/` and `~/.codex/` on your own machine. **Nothing is uploaded.**
+- One outbound call, only if Codex is installed: your own credentials to `chatgpt.com` for quota numbers.

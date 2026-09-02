@@ -80,8 +80,8 @@ case "$CMD" in
     say "用法："
     say "  claude-usage-widget install      安装并启用"
     say "  claude-usage-widget uninstall    卸载"
-    say "  claude-usage-widget codex on     打开 Codex 支持（会读本机 Codex 凭据）"
-    say "  claude-usage-widget codex off    关掉"
+    say "  claude-usage-widget codex off    关掉 Codex 支持（默认是开的）"
+    say "  claude-usage-widget codex on     再打开"
     say "  claude-usage-widget doctor       打印诊断信息（值已脱敏，可以直接发给别人）"
     exit 0 ;;
   *) die "未知命令：$CMD（可用：install / uninstall / codex / doctor）" ;;
@@ -92,26 +92,30 @@ STATE_DIR="$HOME/.claude/usage-widget"
 # ═══════════════════════ codex 开关 ═══════════════════════
 if [ "$ACTION" = "codex" ]; then
   mkdir -p "$STATE_DIR" 2>/dev/null
+  _ch="${CODEX_HOME:-$HOME/.codex}"
+  [ -f "$STATE_DIR/codex.home" ] && _ch=$(head -1 "$STATE_DIR/codex.home")
   case "${2:-}" in
     on)
-      : > "$STATE_DIR/codex.on"
-      say ""
-      step "已打开 Codex 支持"
-      printf "\n"
-      warn "打开之后会发生这些事，请确认你接受："
-      printf "    ${DIM}· 读取 ~/.codex/auth.json 里的登录凭据${R}\n"
-      printf "    ${DIM}· 拿它去问 https://chatgpt.com/backend-api/wham/usage 要额度${R}\n"
-      printf "    ${DIM}· 凭据只发给 chatgpt.com 自己，不经任何第三方${R}\n"
-      printf "    ${DIM}· 这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」${R}\n"
-      printf "\n    ${DIM}不想要了：claude-usage-widget codex off${R}\n\n"
-      exit 0 ;;
+      rm -f "$STATE_DIR/codex.off"
+      say ""; step "Codex 支持：已启用"
+      [ -d "$_ch" ] || warn "但这台机器上没找到 $_ch —— 装了 Codex 才会有数据"
+      say "" ; exit 0 ;;
     off)
-      rm -f "$STATE_DIR/codex.on" "$STATE_DIR/codex-snapshot.env" 2>/dev/null
+      : > "$STATE_DIR/codex.off"
+      rm -f "$STATE_DIR/codex-snapshot.env" 2>/dev/null
       rm -rf "$STATE_DIR/cache-codex" 2>/dev/null
-      say ""; step "已关闭 Codex 支持，相关缓存和快照都删了"; say ""
+      say ""; step "Codex 支持：已关闭"
+      printf "    ${DIM}相关缓存和快照都删了。不会再读凭据、也不会再联网。${R}\n"
+      printf "    ${DIM}想开回来：claude-usage-widget codex on${R}\n\n"
       exit 0 ;;
     *)
-      if [ -f "$STATE_DIR/codex.on" ]; then say "Codex 支持：已打开"; else say "Codex 支持：未打开"; fi
+      if [ -f "$STATE_DIR/codex.off" ]; then
+        say "Codex 支持：已被手动关闭"
+      elif [ -d "$_ch" ]; then
+        say "Codex 支持：已启用（检测到 $_ch）"
+      else
+        say "Codex 支持：默认启用，但没找到 $_ch —— 装了 Codex 就会自动生效"
+      fi
       say "用法：claude-usage-widget codex [on|off]"
       exit 0 ;;
   esac
@@ -148,7 +152,8 @@ if [ "$ACTION" = "doctor" ]; then
   say ""
   step "Codex"
   CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-  if [ -f "$STATE_DIR/codex.on" ]; then ok "支持已打开"; else no "支持未打开（claude-usage-widget codex on）"; fi
+  if [ -f "$STATE_DIR/codex.off" ]; then no "被手动关闭了（claude-usage-widget codex on 开回来）"
+  else ok "支持已启用（有 Codex 就自动生效）"; fi
   if [ -d "$CODEX_HOME" ]; then
     ok "CODEX_HOME = $CODEX_HOME"
     _n=$(find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" -name '*.jsonl' 2>/dev/null | wc -l | tr -d ' ')
@@ -390,6 +395,19 @@ if [ "$NEED_RESTART" = "1" ] || [ -z "$(ub_pid)" ]; then
 else
   osascript -e 'tell application "Übersicht" to refresh' >/dev/null 2>&1
   good "已刷新（PID $(ub_pid)）"
+fi
+
+# 检测到 Codex 就明说会发生什么。默认打开 ≠ 可以不告诉用户。
+_CH="${CODEX_HOME:-$HOME/.codex}"
+[ -f "$STATE_DIR/codex.home" ] && _CH=$(head -1 "$STATE_DIR/codex.home" 2>/dev/null)
+if [ -d "$_CH" ] && [ ! -f "$STATE_DIR/codex.off" ]; then
+  say ""
+  step "顺便：检测到你装了 Codex，已自动一起显示"
+  printf "    ${DIM}展开面板的标题会变成 Claude / Codex 两个页签，点一下就切。${R}\n\n"
+  printf "    ${DIM}柱状图和热力图读的是本机 $_CH/sessions 里的会话记录。${R}\n"
+  printf "    ${DIM}两个额度环需要读 $_CH/auth.json 里你已有的登录凭据，${R}\n"
+  printf "    ${DIM}拿它去问 ChatGPT 官方接口 —— 凭据只发给 chatgpt.com，不经第三方。${R}\n\n"
+  printf "    ${DIM}不想要：claude-usage-widget codex off${R}\n"
 fi
 
 say "\n${B}装好了。$R\n"
