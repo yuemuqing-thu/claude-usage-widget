@@ -1,3 +1,4 @@
+import { run } from "uebersicht";
 // Claude Usage — Übersicht 桌面挂件
 //
 // 折叠时是一枚窄药丸，只显示两个额度百分比；点右侧箭头展开成完整卡片
@@ -46,6 +47,71 @@ const readPref = (k, d) => {
 const writePref = (k, v) => {
   try { window.localStorage.setItem(k, v); } catch (e) {}
 };
+
+// ─────────── 中英切换 ───────────
+// 语言存在 localStorage，默认跟随系统。所有面向用户的字都走 t()，
+// 带参数的句子用 {0} {1} 占位 —— 中英语序不同，不能靠拼接。
+const K_LANG = "cu.lang";
+const I18N = {
+  zh: {
+    expand: "展开 / 收起", home: "双击归位", loading: "正在读取用量…", err: "脚本出错：",
+    h5: "5 小时", d7: "7 天", h5full: "5 小时会话", d7full: "7 天周额度",
+    resetIn: "{0}后重置", noData: "暂无数据", soon: "即将重置",
+    dh: "{0}天{1}小时", hm: "{0}小时{1}分", mm: "{0}分钟",
+    justNow: "刚刚", minAgo: "{0} 分钟前", hrAgo: "{0} 小时前", dayAgo: "{0} 天前",
+    ctx: "当前会话上下文", last14: "近 14 天", heat: "活动热力图", nDays: "{0} 天",
+    today: "今日", todayTok: "今日 token", share: "{0}% 占比",
+    less: "少", more: "多", months: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+    setupTitle: "还没拿到订阅额度",
+    setupBody: "额度百分比只能由运行中的 Claude Code 会话提供。跑一次 claude-usage-widget install 配好 statusLine，然后开一个会话即可。",
+    coats: "花色", plays: "玩法", loveTip: "亲密度",
+    feed: "投喂小鱼", toy: "毛线球", laser: "激光笔", box: "纸箱", bird: "放只小鸟",
+    themes: { coral: "珊瑚", blue: "蔚蓝", purple: "紫罗兰", green: "薄荷", mono: "石墨" },
+    catCoats: { orange: "橘猫", grey: "灰猫", black: "黑猫", cream: "奶白", calico: "三花", siam: "暹罗" },
+    wantCoffee: "{0}想喝咖啡了", aCat: "小猫", namePh: "给它起个名字",
+    nameLocked: "摸满 {0} 次就能给它起名字", loveEgg: "Love {0}",
+    langTip: "切换到英文",
+  },
+  en: {
+    expand: "Expand / collapse", home: "Double-click to reset", loading: "Reading usage…", err: "Script error: ",
+    h5: "5-hour", d7: "7-day", h5full: "5-hour session", d7full: "Weekly quota",
+    resetIn: "resets in {0}", noData: "no data yet", soon: "resetting soon",
+    dh: "{0}d {1}h", hm: "{0}h {1}m", mm: "{0}m",
+    justNow: "just now", minAgo: "{0}m ago", hrAgo: "{0}h ago", dayAgo: "{0}d ago",
+    ctx: "Context used", last14: "Last 14 days", heat: "Activity", nDays: "{0} days",
+    today: "Today", todayTok: "Tokens today", share: "{0}% share",
+    less: "less", more: "more", months: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    setupTitle: "No quota data yet",
+    setupBody: "Percentages come from a running Claude Code session. Run claude-usage-widget install to set up the statusLine, then start a session.",
+    coats: "Coat", plays: "Play", loveTip: "Affection",
+    feed: "Feed a fish", toy: "Yarn ball", laser: "Laser pointer", box: "Cardboard box", bird: "Send a bird",
+    themes: { coral: "Coral", blue: "Azure", purple: "Violet", green: "Mint", mono: "Graphite" },
+    catCoats: { orange: "Ginger", grey: "Grey", black: "Black", cream: "Cream", calico: "Calico", siam: "Siamese" },
+    wantCoffee: "{0} wants a coffee", aCat: "The cat", namePh: "Name your cat",
+    nameLocked: "Pet it {0} times to unlock naming", loveEgg: "Love {0}",
+    langTip: "Switch to Chinese",
+  },
+};
+const curLang = () => {
+  const v = readPref(K_LANG, "");
+  if (v === "zh" || v === "en") return v;
+  try { return /^zh/i.test(navigator.language || "") ? "zh" : "en"; } catch (e) { return "zh"; }
+};
+const tr = (lang, k, ...a) => {
+  const s = (I18N[lang] || I18N.zh)[k];
+  if (typeof s !== "string") return s;
+  return s.replace(/\{(\d)\}/g, (_, i) => a[+i]);
+};
+// 用于 title 等属性：属性里塞不了 JSX，只能取当前语言，切换后下一次刷新才更新
+const t = (k, ...a) => tr(curLang(), k, ...a);
+// 用于正文：中英两份都渲染进 DOM，由 CSS 的 #cu-lang:checked 选显示哪份。
+// 挂件 8 秒才重渲染一次，靠 JS 切语言会卡顿 —— 主题色和花色也是这个套路。
+const T = ({ k, a }) => (
+  <span className="i18n">
+    <span className="zh">{tr("zh", k, ...(a || []))}</span>
+    <span className="en">{tr("en", k, ...(a || []))}</span>
+  </span>
+);
 
 // ─────────── 拖动 ───────────
 // 位置存的是药丸左上角坐标。拖动中的实时值放在模块变量里，
@@ -132,26 +198,26 @@ const fmtUsd = (n) => {
   return "$" + n.toFixed(2);
 };
 const fmtDur = (s) => {
-  if (s == null || s <= 0) return "即将重置";
+  if (s == null || s <= 0) return t("soon");
   const d = Math.floor(s / 86400);
   const h = Math.floor((s % 86400) / 3600);
   const m = Math.floor((s % 3600) / 60);
-  if (d > 0) return d + "天" + h + "小时";
-  if (h > 0) return h + "小时" + m + "分";
-  return m + "分钟";
+  if (d > 0) return t("dh", d, h);
+  if (h > 0) return t("hm", h, m);
+  return t("mm", m);
 };
 const fmtAge = (s) => {
   if (s == null) return "";
-  if (s < 90) return "刚刚";
-  if (s < 3600) return Math.floor(s / 60) + " 分钟前";
-  if (s < 86400) return Math.floor(s / 3600) + " 小时前";
-  return Math.floor(s / 86400) + " 天前";
+  if (s < 90) return t("justNow");
+  if (s < 3600) return t("minAgo", Math.floor(s / 60));
+  if (s < 86400) return t("hrAgo", Math.floor(s / 3600));
+  return t("dayAgo", Math.floor(s / 86400));
 };
 
 // ─────────── 组件 ───────────
 
 const Chevron = ({ id, cls }) => (
-  <label htmlFor={id} className={"chev " + cls} title="展开 / 收起" onMouseDown={stop}>
+  <label htmlFor={id} className={"chev " + cls} title={t("expand")} onMouseDown={stop}>
     <svg width="11" height="11" viewBox="0 0 12 12">
       <path
         d="M2.5 4.5 L6 8 L9.5 4.5"
@@ -280,7 +346,7 @@ const Heat = ({ days }) => {
     const first = w.find((c) => c);
     if (!first) return "";
     const m = Number(first.d.slice(5, 7));
-    if (m !== lastMonth) { lastMonth = m; return m + "月"; }
+    if (m !== lastMonth) { lastMonth = m; return t("months")[m - 1]; }
     return "";
   });
 
@@ -303,9 +369,9 @@ const Heat = ({ days }) => {
         ))}
       </div>
       <div className="heatLegend">
-        <span>少</span>
+        <span><T k="less" /></span>
         <i className="cell l1" /><i className="cell l2" /><i className="cell l3" /><i className="cell l4" />
-        <span>多</span>
+        <span><T k="more" /></span>
       </div>
     </div>
   );
@@ -329,6 +395,15 @@ const Heat = ({ days }) => {
 const K_PET = "cu.pet";
 const K_COAT = "cu.coat";
 const K_LOVE = "cu.love";
+const K_NAME = "cu.name";        // 猫的名字，100 赞后才解锁
+const K_COFF = "cu.coffee";      // 已经提醒过的最近一个 50 的整数倍
+const K_EGG  = "cu.egg1000";     // 1000 赞的隐藏彩蛋放过没有
+const NAME_AT = 100;             // 解锁改名的门槛
+const COFFEE_EVERY = 50;         // 每多少赞提醒一次咖啡
+const LOVE_EGG = 1000;           // 隐藏彩蛋门槛
+const DEFAULT_NAME = "木木";
+const AFDIAN = "https://ifdian.net/a/sonetto_zhou";
+const catName = () => (readPref(K_NAME, "") || DEFAULT_NAME);
 
 const SPR = {"W":32,"H":36,"frames":{"sit":[["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO....OO.....","........OfflllllllffdO..OffO....","........OMfflllllffMMO..OffmO...","........OfffflfffffffO...OmmO...",".......OmfffffMfffffmO...OmmO...","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""],["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO......OO...","........OfflllllllffdO...OffO...","........OMfflllllffMMO...OffmO..","........OfffflfffffffO....OmmO..",".......OmfffffMfffffmO....OmmO..","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""],["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO....OO.....","........OfflllllllffdO..OffO....","........OMfflllllffMMO..OffmO...","........OfffflfffffffO...OmmO...",".......OmfffffMfffffmO...OmmO...","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""],["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO..OO.......","........OfflllllllffdO.OffO.....","........OMfflllllffMMO.OffmO....","........OfffflfffffffO..OmmO....",".......OmfffffMfffffmO..OmmO....","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""]],"walk":[["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO......OO...","........OfflllllllffdO...OffO...","........OMfflllllffMMO...OffmO..","........OfffflfffffffO....OmmO..",".......OmfffffMfffffmO....OmmO..","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""],["","...OOOO.............OOOO........","...OMffOO.........OOffMO........","..OddmmffOOOOOOOOOffmmddO.......","..OddlddfffmfMfmfffddlddO.......","..OdllmffffMfffMffffmlfdO.......","..OdfMfffffffffffffffMfdO.......","..OdmMfffffffffffffffMddO.......","..OOmfffffffffffffffffmOO.......","....OmffffffffffffffffO.........",".OOOfDfffffffffffffffffOOO......","...OfDfffffffPPffffffffO........",".OOOffDffffllpllfffffffOOO......","...ODffMfflldlldlffMffO.........","...OmfflfflllddllfflffO.........","....OOflllllllllllllfOO.........","......OdllllllllllldO...........",".......OdddMMMMMdddO............",".......ODdddddddddDO............",".......OddMMMMMMMddO............",".......OMMlllllllMMO............",".......OfflllllllffO....OO......",".......OfflllllllffdO..OffO.....",".......OMfflllllffMMO..OffmO....",".......OfffflfffffffO...OmmO....","......OmfffffMfffffmO...OmmO....",".....OmDfffffdfffffmmO..OdO.....",".....OmDfffffDfffffDmdOOMfO.....",".....OmDfffffDfffffDddDmfMO.....",".....OdOOOffMDfffffDddmmmO......",".....OO...OOODfffffddOOOO.......",".............DffffOOO...........",".............OOOOO..............","","",""],["","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOO........",".......OdllllllllllldO..........","........OdddMMMMMdddO...........","........ODdddddddddDO...........","........OddMMMMMMMddO...........","........OMMlllllllMMO...........","........OfflllllllffO..OO.......","........OfflllllllffdO.OffO.....","........OMfflllllffMMO.OffmO....","........OfffflfffffffO..OmmO....",".......OmfffffMfffffmO..OmmO....","......OmmfffffdfffffmmO..OdO....","......OmDfffffDfffffDmdOOMfO....","......OmDfffffDfffffDddDmfMO....","......OdDfffffDfffffDddmmmO.....","......OODfffffDfffffddOOOO......","........OOOffMDffffOOO..........","...........OOOOOOOO.............","",""],["",".....OOOO.............OOOO......",".....OMffOO.........OOffMO......","....OddmmffOOOOOOOOOffmmddO.....","....OddlddfffmfMfmfffddlddO.....","....OdllmffffMfffMffffmlfdO.....","....OdfMfffffffffffffffMfdO.....","....OdmMfffffffffffffffMddO.....","....OOmfffffffffffffffffmOO.....","......OmffffffffffffffffO.......","...OOOfDfffffffffffffffffOOO....",".....OfDfffffffPPffffffffO......","...OOOffDffffllpllfffffffOOO....",".....ODffMfflldlldlffMffO.......",".....OmfflfflllddllfflffO.......","......OOflllllllllllllfOO.......","........OdllllllllllldO.........",".........OdddMMMMMdddO..........",".........ODdddddddddDO..........",".........OddMMMMMMMddO..........",".........OMMlllllllMMO..........",".........OfflllllllffO....OO....",".........OfflllllllffdO..OffO...",".........OMfflllllffMMO..OffmO..",".........OfffflfffffffO...OmmO..","........OmfffffMfffffmO...OmmO..",".......OmmfffffdfffffDmO..OdO...",".......OmDfffffDfffffDmdOOMfO...",".......OmDfffffDfffffdddDmfMO...",".......OdDfffffDffffOOddmmmO....",".......OODfffffDOOOO..dOOOO.....",".........OOOffMD......O.........","............OOOO................","","",""]],"loaf":[["","","","","","","","","","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffOO.......","...OOmfflfflllddllfflffOlOOO....","..OdfOOflllllllllllllfOOlfffO...",".OddfffOdllllllllllldOlllfffdO..",".OddfffllllllllllllllllllfffdO..",".OddffffffffffffffffffffffffddOO",".OddffffffffffffffffffffffffdddO",".OddffffffffffffffffffffffffdddO",".OmmmmmmmlllllmmlllllmmmmmmmmmmO","..OmmmmmOlllllOOlllllOmmmmmmmmmO","...OOODDOlllllOOlllllODDDODDDDOO","......OOOOOOOOOOOOOOOOOOO.OOOO..","",""],["","","","","","","","","","....OOOO.............OOOO.......","....OMffOO.........OOffMO.......","...OddmmffOOOOOOOOOffmmddO......","...OddlddfffmfMfmfffddlddO......","...OdllmffffMfffMffffmlfdO......","...OdfMfffffffffffffffMfdO......","...OdmMfffffffffffffffMddO......","...OOmfffffffffffffffffmOO......",".....OmffffffffffffffffO........","..OOOfDfffffffffffffffffOOO.....","....OfDfffffffPPffffffffO.......","..OOOffDffffllpllfffffffOOO.....","....ODffMfflldlldlffMffO........","....OmfflfflllddllfflffO........",".....OOflllllllllllllfOOO.......","...OOOfOdllllllllllldOlllOOO....","..OdfffllllllllllllllllllfffO...",".OddfffllllllllllllllllllfffdO..",".OddfffllllllllllllllllllfffddOO",".OddffffffffffffffffffffffffdddO",".OddffffffffffffffffffffffffdddO",".OddffffflllllfflllllfffffffdddO","..OmmmmmOlllllOOlllllOmmmmmmmmmO","...OOODDOlllllOOlllllODDDODDDDOO","......OOOOOOOOOOOOOOOOOOO.OOOO..","",""]]},"anchors":{"sit":[[7,8,17,8],[7,8,17,8],[7,8,17,8],[7,8,17,8]],"walk":[[7,8,17,8],[6,7,16,7],[7,8,17,8],[8,7,18,7]],"loaf":[[7,16,17,16],[7,15,17,15]]},"eyes":{"open":{"l":[".NNNN.","NNNNEN","eNNNNN","eeNNNN","eeNNNN",".eeNN."],"r":[".NNNN.","NENNNN","NNNNNe","NNNNee","NNNNee",".NNee."],"dy":0},"shut":{"l":[".OOOO.","OOOOOO",".O..O."],"r":[".OOOO.","OOOOOO",".O..O."],"dy":2},"happy":{"l":["..OO..",".O..O.","O....O"],"r":["..OO..",".O..O.","O....O"],"dy":2},"half":{"l":["OOOOOO","ONNNNO",".OOOO."],"r":["OOOOOO","ONNNNO",".OOOO."],"dy":2}},"coats":[{"id":"orange","label":"橘猫","pal":{"O":"#33060A","D":"#8C2D1F","o":"#9E4927","d":"#C4472F","m":"#DD6040","M":"#E77444","f":"#FB9444","l":"#FCAE64","w":"#FCCA92","W":"#E8B27A","e":"#FADFB0","p":"#E8635F","P":"#9B2F55","N":"#33060A","E":"#FFFFFF","c":"#FF8A5B"}},{"id":"grey","label":"灰猫","pal":{"O":"#1C2026","D":"#3C444E","o":"#4E5762","d":"#69737E","m":"#7B8590","M":"#8E98A3","f":"#A7B1BB","l":"#C3CBD3","w":"#E4E9ED","W":"#C0C7CE","e":"#F2F6F8","p":"#E890A0","P":"#B4566A","N":"#1C2026","E":"#FFFFFF","c":"#FF8A5B"}},{"id":"black","label":"黑猫","pal":{"O":"#0B0A0F","D":"#211E29","o":"#2C2836","d":"#3A3546","m":"#453F53","M":"#4F4860","f":"#5B5370","l":"#6E6586","w":"#8C82A4","W":"#736B89","e":"#F5E7B8","p":"#D4808F","P":"#8E4E5C","N":"#0B0A0F","E":"#FFFFFF","c":"#FF8A5B"}},{"id":"cream","label":"奶白","pal":{"O":"#4A3526","D":"#9A7A5C","o":"#B08F6E","d":"#C8AC8B","m":"#D6BC9E","M":"#E2CBB0","f":"#EFDCC4","l":"#F7EAD8","w":"#FFF8EC","W":"#E8DAC4","e":"#FFFDF6","p":"#E8909C","P":"#B45A68","N":"#4A3526","E":"#FFFFFF","c":"#FF8A5B"}},{"id":"calico","label":"三花","pal":{"O":"#3A2A1E","D":"#6E4A2E","o":"#8A6242","d":"#C4472F","m":"#DD6040","M":"#E8B27A","f":"#F2E2CC","l":"#FBF2E4","w":"#FFFFFF","W":"#E0D2BE","e":"#FFFDF6","p":"#E8635F","P":"#9B2F55","N":"#3A2A1E","E":"#FFFFFF","c":"#FF8A5B"}},{"id":"siam","label":"暹罗","pal":{"O":"#3A2A20","D":"#6B5240","o":"#8A705A","d":"#A88C72","m":"#BFA286","M":"#D2B999","f":"#E6D4B8","l":"#F2E5CE","w":"#FBF3E4","W":"#DCCBB0","e":"#FFFDF6","p":"#D98A8A","P":"#8E5252","N":"#3A2A20","E":"#FFFFFF","c":"#FF8A5B"}}],"items":{"fish":[".................O","................OO","...OOOOOOOO...OOfO",".OOEElllldlOOOfffO",".OfENllldldfdOOfdO","OdffffffffffdDOfdO",".OffffffffffdOOddO",".OOddddddddOO.OOdO","...OOOOOOOO.....OO",".................O",""],"yarn":["","","...OOOOOOOO....","..OlOOllOOlO...",".OfOOOOOOOOO...",".OOOllOOllOO...",".OffffOOOfffO..",".OffffOfOfffO..",".OffffOfOfffO..",".OOOddOOdddO...","..OOOdOOdOOO...","..ODDOOOOOO.O..","...OOOOOOO...O.",".............O.","............O.."],"bird":["","........OOOO....",".......OllfO....",".......OlfNdO...","....OOOlfdddpp..","OO.OllOfdddOp...","OOOlffOODDO.....","OOllfddOOOO.....","OOllddddddO.....","OOOffdddddO.....","...OOOOOOO......",""],"box":["..OOO..................OOO..",".OlllO................OdddO.",".OlllO................OdddO.",".OlllO................OdddO.","OOOOOOOOOOOOOOOOOOOOOOOOOOOO","OD........................DO","OD........................DO","OOOOOOOOOOOOOOOOOOOOOOOOOOOO","OllffffffffffffffffffffffddO","OllffffffffffffffffffffffddO","OllffdddddddddddddddddffffdO","OllffffffffffffffffffffffddO","OllffffffffffffffffffffffddO","OllffffffffffffffffffffffddO","OllffffffffffffffffffffffddO","OOOOOOOOOOOOOOOOOOOOOOOOOOOO"]},"itemPal":{"fish":{"O":"#1E3A4E","D":"#3D6E8E","d":"#559BC0","f":"#82C3E6","l":"#B6E2F7","E":"#FFFFFF","N":"#14232E","p":"#E8635F"},"yarn":{"O":"#5A1D2A","D":"#8E3444","d":"#B8455A","f":"#E06478","l":"#F49CAA","E":"#FFFFFF","N":"#5A1D2A","p":"#E8635F"},"bird":{"O":"#26401E","D":"#446634","d":"#5E8B42","f":"#8CBE5E","l":"#BCDE92","E":"#FFFFFF","N":"#141F10","p":"#F0A83E"},"box":{"O":"#4E3418","D":"#8A6535","d":"#B48A4A","f":"#D8B274","l":"#EDD3A2","E":"#FFFFFF","N":"#4E3418","p":"#E8635F"}}};
 const COATS = SPR.coats;
@@ -343,6 +418,45 @@ const PET_CSS = `
   0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
   22%  { opacity: 1; transform: translate(-50%, -11px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -38px) scale(1); }
+}
+#cu-pet .cu-say {
+  position: fixed; transform: translate(-50%, -100%);
+  font: 500 12px/1.4 -apple-system, "PingFang SC", sans-serif;
+  color: #2A1D14; background: #FCCA92;
+  padding: 5px 10px; border-radius: 11px; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35), inset 0 0 0 1.5px #33060A;
+  animation: cuSayIn 260ms cubic-bezier(0.32,0.72,0,1);
+}
+#cu-pet .cu-say.tap { pointer-events: auto; cursor: pointer; }
+#cu-pet .cu-say.tap:hover { background: #FFE0B0; }
+@keyframes cuSayIn {
+  from { opacity: 0; transform: translate(-50%, -80%) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+#cu-pet .cu-heart {
+  position: fixed; pointer-events: none; color: #FF6B8A;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  animation: cuHeart 2s cubic-bezier(0.22,0.68,0,1) forwards;
+}
+@keyframes cuHeart {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.3); }
+  18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+  100% { opacity: 0;
+         transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.8); }
+}
+#cu-pet .cu-egg {
+  position: fixed; transform: translate(-50%, -100%); pointer-events: none;
+  font: 700 15px/1.3 -apple-system, "PingFang SC", sans-serif;
+  color: #FFF; letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(255,107,138,0.9), 0 2px 4px rgba(0,0,0,0.5);
+  animation: cuEgg 3.2s cubic-bezier(0.22,0.68,0,1) forwards;
+}
+@keyframes cuEgg {
+  0%   { opacity: 0; transform: translate(-50%,-70%) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%,-100%) scale(1.15); }
+  25%  { transform: translate(-50%,-100%) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%,-150%) scale(1); }
 }
 #cu-pet .cu-dot {
   position: fixed; width: 10px; height: 10px; border-radius: 50%;
@@ -670,6 +784,55 @@ function createPet(SPR, opts) {
     }, 250);
   }
 
+  // 猫头顶的气泡。跟 puff 不同：它停留几秒、可以点、点了走 onClick。
+  function say(text, onClick, ms) {
+    const old = wrap.querySelector(".cu-say");
+    if (old) old.remove();
+    const e = document.createElement("div");
+    e.className = "cu-say" + (onClick ? " tap" : "");
+    e.textContent = text;
+    e.style.left = (S.x + CW / 2) + "px";
+    e.style.top = (S.y - 12) + "px";
+    if (onClick) {
+      e.addEventListener("mousedown", (ev) => {
+        ev.stopPropagation(); ev.preventDefault();
+        try { onClick(); } catch (err) {}
+        e.remove();
+      });
+    }
+    wrap.appendChild(e);
+    const t = setTimeout(() => e.remove(), ms || 9000);
+    e.addEventListener("remove", () => clearTimeout(t));
+    return e;
+  }
+
+  // 1000 赞的隐藏彩蛋：一堆爱心从猫身上炸出来，中间浮一行字
+  function celebrate(text) {
+    for (let i = 0; i < 14; i++) {
+      const h = document.createElement("div");
+      h.className = "cu-heart";
+      h.textContent = "♥";
+      const a = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
+      const r = 50 + Math.random() * 70;
+      h.style.left = (S.x + CW / 2) + "px";
+      h.style.top = (S.y + CH / 2) + "px";
+      h.style.setProperty("--dx", Math.cos(a) * r + "px");
+      h.style.setProperty("--dy", (Math.sin(a) * r - 30) + "px");
+      h.style.animationDelay = (i * 40) + "ms";
+      h.style.fontSize = (11 + Math.random() * 9) + "px";
+      wrap.appendChild(h);
+      setTimeout(() => h.remove(), 2200 + i * 40);
+    }
+    const b = document.createElement("div");
+    b.className = "cu-egg";
+    b.textContent = text;
+    b.style.left = (S.x + CW / 2) + "px";
+    b.style.top = (S.y - 20) + "px";
+    wrap.appendChild(b);
+    setTimeout(() => b.remove(), 3200);
+    S.moodT = 3.2; S.hopT = 0.42;
+  }
+
   function destroy() {
     cancelAnimationFrame(raf);
     if (boxIv) clearInterval(boxIv);
@@ -685,6 +848,7 @@ function createPet(SPR, opts) {
     toy:  () => { if (!S.item) S.item = spawnNear("yarn"); },
     laser: laser, bird: bird, box: box,
     love: () => S.love, setLove: (n) => { S.love = n; },
+    say: say, celebrate: celebrate,
     pause: (v) => { S.paused = v; },
     destroy: destroy, _S: S,
   };
@@ -714,6 +878,28 @@ const ensurePet = (on, accent, coatId) => {
         writePref(K_LOVE, String(n));
         const el = document.querySelector(".cu .loveN");
         if (el) el.textContent = String(n);
+        // 到 100 才显示名字，所以这一刻要把名字那块点亮
+        const nameEl = document.querySelector(".cu .loveName");
+        if (nameEl && n >= NAME_AT) nameEl.textContent = catName();
+        const pet = window.__cuPet;
+        if (!pet) return;
+
+        // 每 50 提醒一次咖啡。记住已经提过的那个整数倍，免得同一档反复弹。
+        const mile = Math.floor(n / COFFEE_EVERY) * COFFEE_EVERY;
+        const shown = parseInt(readPref(K_COFF, "0"), 10) || 0;
+        if (mile >= COFFEE_EVERY && mile > shown) {
+          writePref(K_COFF, String(mile));
+          const who = n >= NAME_AT ? catName() : t("aCat");
+          pet.say(t("wantCoffee", who) + " ☕", () => {
+            try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {}
+          });
+        }
+
+        // 1000 赞的隐藏彩蛋，只放一次
+        if (n >= LOVE_EGG && readPref(K_EGG, "") !== "1") {
+          writePref(K_EGG, "1");
+          setTimeout(() => pet.celebrate(t("loveEgg", catName())), 400);
+        }
       },
     });
     window.__cuPet.setLove(parseInt(readPref(K_LOVE, "0"), 10) || 0);
@@ -750,6 +936,11 @@ export const render = ({ output, error }) => {
       onChange={(e) => writePref(K_OPEN, e.target.checked ? "1" : "0")}
     />,
     <input
+      key="lang" type="checkbox" id="cu-lang" className="sw"
+      defaultChecked={curLang() === "en"}
+      onChange={(e) => writePref(K_LANG, e.target.checked ? "en" : "zh")}
+    />,
+    <input
       key="pet" type="checkbox" id="cu-pet-sw" className="sw"
       defaultChecked={petOn}
       onChange={(e) => {
@@ -777,11 +968,11 @@ export const render = ({ output, error }) => {
 
   const shell = (inner) => (<div className="cu">{switches}<div className="body">{inner}</div></div>);
 
-  if (error) return shell(<div className="pill"><div className="hint">脚本出错：{String(error)}</div></div>);
+  if (error) return shell(<div className="pill"><div className="hint"><T k="err" />{String(error)}</div></div>);
 
   let data = null;
   try { data = JSON.parse(output); } catch (e) { data = null; }
-  if (!data || !data.ok) return shell(<div className="pill"><div className="hint">正在读取用量…</div></div>);
+  if (!data || !data.ok) return shell(<div className="pill"><div className="hint"><T k="loading" /></div></div>);
 
   const L = data.limits || {};
   const five = L.five || null;
@@ -801,10 +992,10 @@ export const render = ({ output, error }) => {
     <div className={stale ? "stale" : ""}>
       {/* ── 折叠态 ── */}
       <div className="pill drag" style={pos} onMouseDown={startDrag}>
-        <span className="dot" title="双击归位" onDoubleClick={resetPos}
+        <span className="dot" title={t("home")} onDoubleClick={resetPos}
               style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
-        <Meter k="5 小时" pct={five ? five.pct : null} base={base} />
-        <Meter k="7 天"  pct={seven ? seven.pct : null} base={base} />
+        <Meter k={<T k="h5" />} pct={five ? five.pct : null} base={base} />
+        <Meter k={<T k="d7" />}  pct={seven ? seven.pct : null} base={base} />
         <Chevron id="cu-open" cls="down" />
       </div>
 
@@ -812,7 +1003,7 @@ export const render = ({ output, error }) => {
       <div className="card drag" style={pos}>
         <div className="head" onMouseDown={startDrag}>
           <div className="brand">
-            <span className="dot" title="双击归位" onDoubleClick={resetPos}
+            <span className="dot" title={t("home")} onDoubleClick={resetPos}
                   style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
             Claude Usage
           </div>
@@ -825,24 +1016,23 @@ export const render = ({ output, error }) => {
         {hasLimits ? (
           <div className="rings">
             <Ring gid="cuG5" base={base} pct={five ? five.pct : null}
-                  label="5 小时会话" sub={five ? fmtDur(five["in"]) + "后重置" : "暂无数据"} />
+                  label={<T k="h5full" />} sub={five ? <T k="resetIn" a={[fmtDur(five["in"])]} /> : <T k="noData" />} />
             <div className="vline" />
             <Ring gid="cuG7" base={base} pct={seven ? seven.pct : null}
-                  label="7 天周额度" sub={seven ? fmtDur(seven["in"]) + "后重置" : "暂无数据"} />
+                  label={<T k="d7full" />} sub={seven ? <T k="resetIn" a={[fmtDur(seven["in"])]} /> : <T k="noData" />} />
           </div>
         ) : (
           <div className="setup">
-            <div className="setupTitle">还没拿到订阅额度</div>
+            <div className="setupTitle"><T k="setupTitle" /></div>
             <div className="setupBody">
-              额度百分比只能由运行中的 Claude Code 会话提供。跑一次 <code>install.sh</code>
-              配好 statusLine，然后开一个会话即可。
+              <T k="setupBody" />
             </div>
           </div>
         )}
 
         {L.ctx != null && (
           <div className="ctx">
-            <span className="ctxK">当前会话上下文</span>
+            <span className="ctxK"><T k="ctx" /></span>
             <div className="ctxBar">
               <div className="ctxFill" style={{
                 width: Math.min(100, L.ctx) + "%",
@@ -854,37 +1044,41 @@ export const render = ({ output, error }) => {
         )}
 
         <div className="plate">
-          <div className="plateHead"><span>近 14 天</span><span className="strong">{fmtUsd(d14.cost)}</span></div>
+          <div className="plateHead"><span><T k="last14" /></span><span className="strong">{fmtUsd(d14.cost)}</span></div>
           <Bars days={days} />
         </div>
 
         <div className="plate">
-          <div className="plateHead"><span>活动热力图</span><span className="strong">{days.length} 天</span></div>
+          <div className="plateHead"><span><T k="heat" /></span><span className="strong"><T k="nDays" a={[days.length]} /></span></div>
           <Heat days={days} />
         </div>
 
         <div className="foot">
           <div className="stat">
             <div className="statVal">{fmtUsd(today.cost)}</div>
-            <div className="statKey">今日</div>
+            <div className="statKey"><T k="today" /></div>
           </div>
           <div className="stat">
             <div className="statVal">{fmtTok(today.tok)}</div>
-            <div className="statKey">今日 token</div>
+            <div className="statKey"><T k="todayTok" /></div>
           </div>
           <div className="stat right">
             <div className="statVal accent">{modelName}</div>
-            <div className="statKey">{topModel ? Math.round(topModel.share * 100) + "% 占比" : ""}</div>
+            <div className="statKey">{topModel ? <T k="share" a={[Math.round(topModel.share * 100)]} /> : ""}</div>
           </div>
         </div>
 
         <div className="themes">
           {PALETTES.map((p) => (
-            <label key={p.id} htmlFor={"cu-t-" + p.id} title={p.label} onMouseDown={stop}
+            <label key={p.id} htmlFor={"cu-t-" + p.id} title={t("themes")[p.id] || p.id} onMouseDown={stop}
                    className={"swatch sw-" + p.id}
                    style={{ background: "linear-gradient(135deg," + p.a1 + "," + p.a2 + ")" }} />
           ))}
-          <label htmlFor="cu-pet-sw" className="petSw" title="桌面小猫" onMouseDown={stop}>
+          <label htmlFor="cu-lang" className="langSw" title={t("langTip")} onMouseDown={stop}>
+            <span className="zh">EN</span>
+            <span className="en">中</span>
+          </label>
+          <label htmlFor="cu-pet-sw" className="petSw" title={t("plays")} onMouseDown={stop}>
             <span className="petPaw">🐾</span>
           </label>
         </div>
@@ -892,23 +1086,34 @@ export const render = ({ output, error }) => {
         {/* 小猫面板：开关打开后才展开 */}
         <div className="petPanel">
           <div className="petRow">
-            <span className="petKey">花色</span>
+            <span className="petKey"><T k="coats" /></span>
             {COATS.map((c) => (
-              <label key={c.id} htmlFor={"cu-c-" + c.id} title={c.label} onMouseDown={stop}
+              <label key={c.id} htmlFor={"cu-c-" + c.id} title={t("catCoats")[c.id] || c.id} onMouseDown={stop}
                      className={"coat coat-" + c.id}
                      style={{ background: c.pal.f, boxShadow: "inset 0 0 0 1.5px " + c.pal.O }} />
             ))}
-            <span className="loveBox" title="亲密度">
+            <span className="loveBox" title={love >= NAME_AT ? t("loveTip") : t("nameLocked", NAME_AT)}>
+              {love >= NAME_AT ? (
+                <input
+                  className="loveName" type="text" maxLength={8}
+                  defaultValue={catName()} placeholder={t("namePh")}
+                  onMouseDown={stop}
+                  onChange={(e) => {
+                    const v = e.target.value.trim();
+                    writePref(K_NAME, v || DEFAULT_NAME);
+                  }}
+                />
+              ) : null}
               <span className="loveH">♥</span><span className="loveN">{love}</span>
             </span>
           </div>
           <div className="petRow">
-            <span className="petKey">玩法</span>
-            <button className="petAct" title="投喂小鱼" onMouseDown={stop} onClick={petDo("feed")}>🐟</button>
-            <button className="petAct" title="毛线球" onMouseDown={stop} onClick={petDo("toy")}>🧶</button>
-            <button className="petAct" title="激光笔" onMouseDown={stop} onClick={petDo("laser")}>🔴</button>
-            <button className="petAct" title="纸箱" onMouseDown={stop} onClick={petDo("box")}>📦</button>
-            <button className="petAct" title="放只小鸟" onMouseDown={stop} onClick={petDo("bird")}>🐦</button>
+            <span className="petKey"><T k="plays" /></span>
+            <button className="petAct" title={t("feed")} onMouseDown={stop} onClick={petDo("feed")}>🐟</button>
+            <button className="petAct" title={t("toy")} onMouseDown={stop} onClick={petDo("toy")}>🧶</button>
+            <button className="petAct" title={t("laser")} onMouseDown={stop} onClick={petDo("laser")}>🔴</button>
+            <button className="petAct" title={t("box")} onMouseDown={stop} onClick={petDo("box")}>📦</button>
+            <button className="petAct" title={t("bird")} onMouseDown={stop} onClick={petDo("bird")}>🐦</button>
           </div>
         </div>
       </div>
@@ -1167,9 +1372,28 @@ export const className = `
     box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.28), 0 0 0 2px rgba(255,255,255,0.30);
   }
 
+  /* ── 中英切换 ── */
+  /* 两份文案都在 DOM 里，用兄弟选择器挑显示哪份 —— 切换是瞬时的，
+     不用等 8 秒后的重渲染。 */
+  .i18n .en { display: none; }
+  #cu-lang:checked ~ .body .i18n .zh { display: none; }
+  #cu-lang:checked ~ .body .i18n .en { display: inline; }
+  .langSw {
+    margin-left: auto; margin-right: 6px; cursor: pointer;
+    font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px;
+    color: rgba(245,245,247,0.42);
+    padding: 3px 7px; border-radius: 7px;
+    background: rgba(255,255,255,0.06);
+    box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.10);
+    transition: color 200ms ease, background 200ms ease;
+  }
+  .langSw:hover { color: rgba(245,245,247,0.85); background: rgba(255,255,255,0.12); }
+  .langSw .en { display: none; }
+  #cu-lang:checked ~ .body .langSw .zh { display: none; }
+  #cu-lang:checked ~ .body .langSw .en { display: inline; }
+
   /* ── 宠物控制 ── */
   .petSw {
-    margin-left: auto;
     display: flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border-radius: 7px;
     cursor: pointer; opacity: 0.34;
@@ -1204,6 +1428,17 @@ export const className = `
     margin-left: auto; display: flex; align-items: center; gap: 3px;
     font-size: 10px; font-variant-numeric: tabular-nums;
   }
+  /* 名字输入框：平时看着像普通文字，点上去才显出可编辑 */
+  .loveName {
+    width: 46px; border: none; outline: none; background: transparent;
+    font: inherit; font-size: 10px; color: rgba(245,245,247,0.78);
+    text-align: right; padding: 1px 3px; border-radius: 5px;
+    -webkit-user-select: text; user-select: text;
+    transition: background 180ms ease;
+  }
+  .loveName::placeholder { color: rgba(245,245,247,0.28); }
+  .loveName:hover  { background: rgba(255,255,255,0.07); }
+  .loveName:focus  { background: rgba(255,255,255,0.13); color: #fff; }
   .loveH { color: var(--a1); font-size: 9px; }
   .loveN { color: rgba(245,245,247,0.62); }
   .petAct {
