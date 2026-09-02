@@ -70,22 +70,20 @@
 
 如果它让你的桌面变得有意思了那么一点点，可以在 [爱发电](https://ifdian.net/a/sonetto_zhou) 请我们吃点东西：
 
-<div align="center">
-<table>
+<table width="100%">
 <tr>
 <td align="center" width="33%"><b>🐟 小鱼干</b><br><sub>猫会记得你</sub></td>
-<td align="center" width="33%"><b>🥤 快乐水</b><br><sub>猫会更起劲地跑</sub></td>
-<td align="center" width="33%"><b>☕ 咖啡</b><br><sub>我会更起劲地写</sub></td>
+<td align="center" width="33%"><b>🥤 快乐水</b><br><sub>猫跑得更起劲</sub></td>
+<td align="center" width="33%"><b>☕ 咖啡</b><br><sub>我写得更起劲</sub></td>
 </tr>
 </table>
-</div>
 
 **发电之后可以：**
 
 - 📛 **留个名** —— 你想展示的名字、昵称、网站链接，会出现在下面的[猫粮榜](#-猫粮榜)里
 - 💡 **插队提需求** —— 想让猫学个新动作？想加个统计维度？发电者的建议我优先做
 
-**不发电也完全没关系。** 代码 MIT 开源，猫照样在你桌面上跑，一个功能都不少。觉得好玩的话点个 ⭐ 我就很高兴了。
+**不发电也完全没关系。** 觉得好玩的话点个 ⭐ 我就很高兴了。
 
 <div align="center">
 
