@@ -1090,10 +1090,6 @@ export const render = ({ output, error }) => {
           <label htmlFor="cu-pet-sw" className="petSw" title={t("plays")} onMouseDown={stop}>
             <span className="petPaw">🐾</span>
           </label>
-          <button className="coffeeSw" title={t("coffeeTip")} onMouseDown={stop}
-                  onClick={() => { try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {} }}>
-            ☕
-          </button>
         </div>
 
         {/* 小猫面板：开关打开后才展开 */}
@@ -1127,6 +1123,10 @@ export const render = ({ output, error }) => {
             <button className="petAct" title={t("laser")} onMouseDown={stop} onClick={petDo("laser")}>🔴</button>
             <button className="petAct" title={t("box")} onMouseDown={stop} onClick={petDo("box")}>📦</button>
             <button className="petAct" title={t("bird")} onMouseDown={stop} onClick={petDo("bird")}>🐦</button>
+              <button className="coffeeSw" title={t("coffeeTip")} onMouseDown={stop}
+                      onClick={() => { try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {} }}>
+                ☕
+              </button>
           </div>
         </div>
       </div>
@@ -1404,7 +1404,8 @@ export const className = `
   /* 咖啡按钮：那一排的最后一个，也就是展开卡片的右下角 */
   .coffeeSw {
     -webkit-appearance: none; appearance: none; border: none; outline: none;
-    cursor: pointer; padding: 2px 5px; margin-left: 1px;
+    cursor: pointer; padding: 3px 6px;
+    margin-left: auto;   /* 顶到「玩法」那行的最右 = 面板展开后的右下角 */
     font-size: 12px; line-height: 1; border-radius: 7px;
     background: transparent; opacity: 0.42;
     transition: opacity 200ms ease, background 200ms ease, transform 260ms cubic-bezier(0.32,0.72,0,1);
