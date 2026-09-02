@@ -178,15 +178,29 @@ cd claude-usage-widget
 sh install.sh
 ```
 
-这样得自己先装 Übersicht：从[官网](https://tracesof.net/uebersicht/)下载拖进「应用程序」即可。
+Übersicht（挂件的宿主）脚本会自己装好，装不上时会改走[官网](https://tracesof.net/uebersicht/)直链。
 
 </details>
 
 ### 连不上 GitHub（中国大陆网络）
 
-装不上通常卡在 GitHub，跟脚本本身无关。分三处，逐个绕开：
+装不上通常卡在 GitHub，跟脚本本身无关。**不需要 Homebrew**，把这两行贴进「终端」回车就行：
 
-**1. Homebrew 本身**——换中科大镜像：
+```sh
+curl -fL https://ghfast.top/https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
+cd claude-usage-widget-main && sh install.sh
+```
+
+第一行下不动就把 `https://ghfast.top/` 换成 `https://gh-proxy.com/`，其余不变。
+
+装完想挪走或卸载，在同一个目录里跑 `sh install.sh uninstall`。
+
+<details>
+<summary>这两个地址是什么 · 顺便说说 Homebrew 和 Übersicht</summary>
+
+`ghfast.top` / `gh-proxy.com` 是第三方的 GitHub 加速转发，我不控制它们。下载下来的东西全是纯文本（`install.sh`、`claude-usage.widget/` 里的 shell、awk 和 jsx），装之前可以直接打开读一遍。
+
+**Homebrew** 这条路也能走通，换中科大镜像即可，只是比上面多几步：
 
 ```sh
 export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
@@ -194,21 +208,13 @@ export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
 export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
 ```
 
-**2. 这个挂件**——`brew tap` 要连 GitHub，直接跳过它。拿到项目压缩包后：
+但 `brew tap` 仍然要连 GitHub，所以直接用上面两行更省事。
 
-```sh
-tar -xzf claude-usage-widget-离线安装包.tar.gz
-cd claude-usage-widget && sh install.sh
-```
-
-脚本按自己所在目录找文件，不依赖 Homebrew，效果跟 `brew` 装完全一样。卸载同样是 `sh install.sh uninstall`。
-
-**3. Übersicht**——好消息是它**不在 GitHub**，安装包在官网 `tracesof.net`。
-`install.sh` 会在 `brew` 装不上时自动改走官网直链；真下不动就手动下载后拖进「应用程序」，再重新运行脚本：
-
-<https://tracesof.net/uebersicht/>
+**Übersicht**（挂件的宿主）不在 GitHub，安装包在官网 `tracesof.net`，脚本会自动下。真下不动就手动下载拖进「应用程序」，再重新运行脚本：<https://tracesof.net/uebersicht/>
 
 > 只有 Übersicht 这一步是 70MB 左右，其余加起来不到 100KB。
+
+</details>
 
 ### 卸载
 
