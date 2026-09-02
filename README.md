@@ -6,7 +6,9 @@
 
 **外加一只住在桌面上的像素猫。**
 
-<img src="docs/walk.gif" width="420" alt="小猫走路">
+<img src="docs/banner.png" width="100%" alt="Claude Usage">
+
+<img src="docs/walk.gif" width="360" alt="小猫走路">
 
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
@@ -59,6 +61,45 @@
 | 🐦 | **小鸟** | 它会压低身子慢慢摸过去，靠太近鸟就飞了 |
 
 ---
+
+---
+
+## 🐟 投喂
+
+这只猫吃像素小鱼干就够了。**我不行，我得吃真的。**
+
+如果它让你的桌面变得有意思了那么一点点，可以在 [爱发电](https://ifdian.net/a/sonetto_zhou) 请我们吃点东西：
+
+<div align="center">
+<table>
+<tr>
+<td align="center" width="33%"><b>🐟 小鱼干</b><br><sub>猫会记得你</sub></td>
+<td align="center" width="33%"><b>🥤 快乐水</b><br><sub>猫会更起劲地跑</sub></td>
+<td align="center" width="33%"><b>☕ 咖啡</b><br><sub>我会更起劲地写</sub></td>
+</tr>
+</table>
+</div>
+
+**发电之后可以：**
+
+- 📛 **留个名** —— 你想展示的名字、昵称、网站链接，会出现在下面的[猫粮榜](#-猫粮榜)里
+- 💡 **插队提需求** —— 想让猫学个新动作？想加个统计维度？发电者的建议我优先做
+
+**不发电也完全没关系。** 代码 MIT 开源，猫照样在你桌面上跑，一个功能都不少。觉得好玩的话点个 ⭐ 我就很高兴了。
+
+<div align="center">
+
+[![爱发电](https://img.shields.io/badge/爱发电-投喂一下-946ce6?style=for-the-badge)](https://ifdian.net/a/sonetto_zhou)
+
+</div>
+
+---
+
+## 🏆 猫粮榜
+
+还没有人投喂过。第一个位置给你留着 🐾
+
+<!-- SPONSORS -->
 
 ## 📊 用量挂件
 
@@ -469,18 +510,6 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 环里的百分比就是 `/usage` 的数（同一来源）。柱状图和 `$` 是本机 jsonl 算出来的，不含其他设备和网页版用量。
 
 </details>
-
----
-
-## 想请我喝杯咖啡 ☕
-
-如果这只猫逗你开心了：
-
-<!-- DONATE -->
-
-不捐也完全没关系，点个 ⭐ 我也很高兴。
-
----
 
 ## 素材说明
 
