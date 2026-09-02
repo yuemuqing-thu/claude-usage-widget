@@ -395,6 +395,7 @@ const Heat = ({ days }) => {
 const K_PET = "cu.pet";
 const K_COAT = "cu.coat";
 const K_LOVE = "cu.love";
+const K_SRC  = "cu.source";   // claude | codex
 const K_NAME = "cu.name";        // 猫的名字，100 赞后才解锁
 const K_COFF = "cu.coffee";      // 已经提醒过的最近一个 50 的整数倍
 const K_EGG  = "cu.egg1000";     // 1000 赞的隐藏彩蛋放过没有
@@ -929,6 +930,8 @@ export const render = ({ output, error }) => {
   // 花色 id 改过（white -> cream），本地存的旧值要能回落，否则色卡一个都不高亮
   const savedCoat = readPref(K_COAT, "orange");
   const coatId = COATS.some((c) => c.id === savedCoat) ? savedCoat : "orange";
+  const savedSrc = readPref(K_SRC, "claude");
+  const source = savedSrc === "codex" ? "codex" : "claude";
   const love = parseInt(readPref(K_LOVE, "0"), 10) || 0;
 
   // 小猫独立于 React 存活，这里只是把开关 / 主题色 / 花色同步过去（幂等）
@@ -943,6 +946,11 @@ export const render = ({ output, error }) => {
       key="open" type="checkbox" id="cu-open" className="sw"
       defaultChecked={open}
       onChange={(e) => writePref(K_OPEN, e.target.checked ? "1" : "0")}
+    />,
+    <input
+      key="src" type="checkbox" id="cu-src" className="sw"
+      defaultChecked={source === "codex"}
+      onChange={(e) => writePref(K_SRC, e.target.checked ? "codex" : "claude")}
     />,
     <input
       key="lang" type="checkbox" id="cu-lang" className="sw"
@@ -979,159 +987,181 @@ export const render = ({ output, error }) => {
 
   if (error) return shell(<div className="pill"><div className="hint"><T k="err" />{String(error)}</div></div>);
 
-  let data = null;
-  try { data = JSON.parse(output); } catch (e) { data = null; }
+  let raw = null;
+  try { raw = JSON.parse(output); } catch (e) { raw = null; }
+  if (!raw || !raw.ok) return shell(<div className="pill"><div className="hint"><T k="loading" /></div></div>);
+
+  // 采集器现在一次吐两家。老格式（没有 sources）也认，免得升级期间白屏。
+  const srcs = raw.sources || { claude: raw, codex: null };
+  const hasCodex = !!(raw.hasCodex && srcs.codex && srcs.codex.ok);
+  const data = (srcs[source] && srcs[source].ok) ? srcs[source] : srcs.claude;
   if (!data || !data.ok) return shell(<div className="pill"><div className="hint"><T k="loading" /></div></div>);
-
-  const L = data.limits || {};
-  const five = L.five || null;
-  const seven = L.seven || null;
-  const hasLimits = !!(five || seven);
-  const stale = L.age != null && L.age > STALE_AFTER;
-
-  const days = data.days || [];
-  const today = data.today || { cost: 0, tok: 0 };
-  const d14 = data.days14 || { cost: 0, tok: 0 };
-  const topModel = (data.models && data.models[0]) || null;
-  const modelName = L.model || (topModel ? topModel.name : "—");
 
   const pos = posStyle();
 
-  return shell(
-    <div className={stale ? "stale" : ""}>
-      {/* ── 折叠态 ── */}
-      <div className="pill drag" style={pos} onMouseDown={startDrag}>
-        <span className="dot" title={t("home")} onDoubleClick={resetPos}
-              style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
-        <Meter k={<T k="h5" />} pct={five ? five.pct : null} base={base} />
-        <Meter k={<T k="d7" />}  pct={seven ? seven.pct : null} base={base} />
-        <Chevron id="cu-open" cls="down" />
-      </div>
+  // 两家的数据本来就都在同一份 JSON 里 —— 两张卡都渲染出来，由 CSS 选显示哪张。
+  // 只写 pref 等下次刷新的话，那 8 秒里标题会写着 CODEX 而数字还是 Claude 的，
+  // 那比延迟更糟，是误导。
+  const viewFor = (data) => {
+    const L = data.limits || {};
+    const five = L.five || null;
+    const seven = L.seven || null;
+    const hasLimits = !!(five || seven);
+    const stale = L.age != null && L.age > STALE_AFTER;
 
-      {/* ── 展开态 ── */}
-      <div className="card drag" style={pos}>
-        <div className="head" onMouseDown={startDrag}>
-          <div className="brand">
+    const days = data.days || [];
+    const today = data.today || { cost: 0, tok: 0 };
+    const d14 = data.days14 || { cost: 0, tok: 0 };
+    const topModel = (data.models && data.models[0]) || null;
+    const modelName = L.model || (topModel ? topModel.name : "—");
+
+    return (
+        <div className={stale ? "stale" : ""}>
+          {/* ── 折叠态 ── */}
+          <div className="pill drag" style={pos} onMouseDown={startDrag}>
             <span className="dot" title={t("home")} onDoubleClick={resetPos}
                   style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
-            Claude Usage
+            <Meter k={<T k="h5" />} pct={five ? five.pct : null} base={base} />
+            <Meter k={<T k="d7" />}  pct={seven ? seven.pct : null} base={base} />
+            <Chevron id="cu-open" cls="down" />
           </div>
-          <div className="headRight">
-            <span className={"age" + (stale ? " warn" : "")}>{hasLimits ? fmtAge(L.age) : ""}</span>
-            <Chevron id="cu-open" cls="up" />
-          </div>
-        </div>
 
-        {hasLimits ? (
-          <div className="rings">
-            <Ring gid="cuG5" base={base} pct={five ? five.pct : null}
-                  label={<T k="h5full" />} sub={five ? <T k="resetIn" a={[fmtDur(five["in"])]} /> : <T k="noData" />} />
-            <div className="vline" />
-            <Ring gid="cuG7" base={base} pct={seven ? seven.pct : null}
-                  label={<T k="d7full" />} sub={seven ? <T k="resetIn" a={[fmtDur(seven["in"])]} /> : <T k="noData" />} />
-          </div>
-        ) : (
-          <div className="setup">
-            <div className="setupTitle"><T k="setupTitle" /></div>
-            <div className="setupBody">
-              <T k="setupBody" />
+          {/* ── 展开态 ── */}
+          <div className="card drag" style={pos}>
+            <div className="head" onMouseDown={startDrag}>
+              <div className="brand">
+                <span className="dot" title={t("home")} onDoubleClick={resetPos}
+                      style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
+                {hasCodex ? (
+                  <span className="srcTabs">
+                    <label htmlFor="cu-src" className="srcTab tab-claude" onMouseDown={stop}>Claude</label>
+                    <label htmlFor="cu-src" className="srcTab tab-codex"  onMouseDown={stop}>Codex</label>
+                  </span>
+                ) : "Claude Usage"}
+              </div>
+              <div className="headRight">
+                <span className={"age" + (stale ? " warn" : "")}>{hasLimits ? fmtAge(L.age) : ""}</span>
+                <Chevron id="cu-open" cls="up" />
+              </div>
+            </div>
+
+            {hasLimits ? (
+              <div className="rings">
+                <Ring gid="cuG5" base={base} pct={five ? five.pct : null}
+                      label={<T k="h5full" />} sub={five ? <T k="resetIn" a={[fmtDur(five["in"])]} /> : <T k="noData" />} />
+                <div className="vline" />
+                <Ring gid="cuG7" base={base} pct={seven ? seven.pct : null}
+                      label={<T k="d7full" />} sub={seven ? <T k="resetIn" a={[fmtDur(seven["in"])]} /> : <T k="noData" />} />
+              </div>
+            ) : (
+              <div className="setup">
+                <div className="setupTitle"><T k="setupTitle" /></div>
+                <div className="setupBody">
+                  <T k="setupBody" />
+                </div>
+              </div>
+            )}
+
+            {L.ctx != null && (
+              <div className="ctx">
+                <span className="ctxK"><T k="ctx" /></span>
+                <div className="ctxBar">
+                  <div className="ctxFill" style={{
+                    width: Math.min(100, L.ctx) + "%",
+                    background: "linear-gradient(90deg," + base.a1 + "," + base.a2 + ")",
+                  }} />
+                </div>
+                <span className="ctxV">{Math.round(L.ctx)}%</span>
+              </div>
+            )}
+
+            <div className="plate">
+              <div className="plateHead"><span><T k="last14" /></span><span className="strong">{fmtUsd(d14.cost)}</span></div>
+              <Bars days={days} />
+            </div>
+
+            <div className="plate">
+              <div className="plateHead"><span><T k="heat" /></span><span className="strong"><T k="nDays" a={[days.length]} /></span></div>
+              <Heat days={days} />
+            </div>
+
+            <div className="foot">
+              <div className="stat">
+                <div className="statVal">{fmtUsd(today.cost)}</div>
+                <div className="statKey"><T k="today" /></div>
+              </div>
+              <div className="stat">
+                <div className="statVal">{fmtTok(today.tok)}</div>
+                <div className="statKey"><T k="todayTok" /></div>
+              </div>
+              <div className="stat right">
+                <div className="statVal accent">{modelName}</div>
+                <div className="statKey">{topModel ? <T k="share" a={[Math.round(topModel.share * 100)]} /> : ""}</div>
+              </div>
+            </div>
+
+            <div className="themes">
+              {PALETTES.map((p) => (
+                <label key={p.id} htmlFor={"cu-t-" + p.id} title={t("themes")[p.id] || p.id} onMouseDown={stop}
+                       className={"swatch sw-" + p.id}
+                       style={{ background: "linear-gradient(135deg," + p.a1 + "," + p.a2 + ")" }} />
+              ))}
+              <label htmlFor="cu-lang" className="langSw" title={t("langTip")} onMouseDown={stop}>
+                <span className="zh">EN</span>
+                <span className="en">中</span>
+              </label>
+              <label htmlFor="cu-pet-sw" className="petSw" title={t("plays")} onMouseDown={stop}>
+                <span className="petPaw">🐾</span>
+              </label>
+            </div>
+
+            {/* 小猫面板：开关打开后才展开 */}
+            <div className="petPanel">
+              <div className="petRow">
+                <span className="petKey"><T k="coats" /></span>
+                {COATS.map((c) => (
+                  <label key={c.id} htmlFor={"cu-c-" + c.id} title={t("catCoats")[c.id] || c.id} onMouseDown={stop}
+                         className={"coat coat-" + c.id}
+                         style={{ background: c.pal.f, boxShadow: "inset 0 0 0 1.5px " + c.pal.O }} />
+                ))}
+                <span className="loveBox" title={love >= NAME_AT ? t("loveTip") : t("nameLocked", NAME_AT)}>
+                  {love >= NAME_AT ? (
+                    <input
+                      className="loveName" type="text" maxLength={8}
+                      defaultValue={catName()} placeholder={t("namePh")}
+                      onMouseDown={stop}
+                      onChange={(e) => {
+                        const v = e.target.value.trim();
+                        writePref(K_NAME, v || DEFAULT_NAME);
+                      }}
+                    />
+                  ) : null}
+                  <span className="loveH">♥</span><span className="loveN">{love}</span>
+                </span>
+              </div>
+              <div className="petRow">
+                <span className="petKey"><T k="plays" /></span>
+                <button className="petAct" title={t("feed")} onMouseDown={stop} onClick={petDo("feed")}>🐟</button>
+                <button className="petAct" title={t("toy")} onMouseDown={stop} onClick={petDo("toy")}>🧶</button>
+                <button className="petAct" title={t("laser")} onMouseDown={stop} onClick={petDo("laser")}>🔴</button>
+                <button className="petAct" title={t("box")} onMouseDown={stop} onClick={petDo("box")}>📦</button>
+                <button className="petAct" title={t("bird")} onMouseDown={stop} onClick={petDo("bird")}>🐦</button>
+                  <button className="coffeeSw" title={t("coffeeTip")} onMouseDown={stop}
+                          onClick={() => { try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {} }}>
+                    ☕
+                  </button>
+              </div>
             </div>
           </div>
-        )}
-
-        {L.ctx != null && (
-          <div className="ctx">
-            <span className="ctxK"><T k="ctx" /></span>
-            <div className="ctxBar">
-              <div className="ctxFill" style={{
-                width: Math.min(100, L.ctx) + "%",
-                background: "linear-gradient(90deg," + base.a1 + "," + base.a2 + ")",
-              }} />
-            </div>
-            <span className="ctxV">{Math.round(L.ctx)}%</span>
-          </div>
-        )}
-
-        <div className="plate">
-          <div className="plateHead"><span><T k="last14" /></span><span className="strong">{fmtUsd(d14.cost)}</span></div>
-          <Bars days={days} />
         </div>
+    );
+  };
 
-        <div className="plate">
-          <div className="plateHead"><span><T k="heat" /></span><span className="strong"><T k="nDays" a={[days.length]} /></span></div>
-          <Heat days={days} />
-        </div>
+  const views = [<div key="claude" className="srcView v-claude">{viewFor(srcs.claude)}</div>];
+  if (hasCodex) views.push(<div key="codex" className="srcView v-codex">{viewFor(srcs.codex)}</div>);
 
-        <div className="foot">
-          <div className="stat">
-            <div className="statVal">{fmtUsd(today.cost)}</div>
-            <div className="statKey"><T k="today" /></div>
-          </div>
-          <div className="stat">
-            <div className="statVal">{fmtTok(today.tok)}</div>
-            <div className="statKey"><T k="todayTok" /></div>
-          </div>
-          <div className="stat right">
-            <div className="statVal accent">{modelName}</div>
-            <div className="statKey">{topModel ? <T k="share" a={[Math.round(topModel.share * 100)]} /> : ""}</div>
-          </div>
-        </div>
+  return shell(<div className="srcWrap">{views}</div>);
 
-        <div className="themes">
-          {PALETTES.map((p) => (
-            <label key={p.id} htmlFor={"cu-t-" + p.id} title={t("themes")[p.id] || p.id} onMouseDown={stop}
-                   className={"swatch sw-" + p.id}
-                   style={{ background: "linear-gradient(135deg," + p.a1 + "," + p.a2 + ")" }} />
-          ))}
-          <label htmlFor="cu-lang" className="langSw" title={t("langTip")} onMouseDown={stop}>
-            <span className="zh">EN</span>
-            <span className="en">中</span>
-          </label>
-          <label htmlFor="cu-pet-sw" className="petSw" title={t("plays")} onMouseDown={stop}>
-            <span className="petPaw">🐾</span>
-          </label>
-        </div>
-
-        {/* 小猫面板：开关打开后才展开 */}
-        <div className="petPanel">
-          <div className="petRow">
-            <span className="petKey"><T k="coats" /></span>
-            {COATS.map((c) => (
-              <label key={c.id} htmlFor={"cu-c-" + c.id} title={t("catCoats")[c.id] || c.id} onMouseDown={stop}
-                     className={"coat coat-" + c.id}
-                     style={{ background: c.pal.f, boxShadow: "inset 0 0 0 1.5px " + c.pal.O }} />
-            ))}
-            <span className="loveBox" title={love >= NAME_AT ? t("loveTip") : t("nameLocked", NAME_AT)}>
-              {love >= NAME_AT ? (
-                <input
-                  className="loveName" type="text" maxLength={8}
-                  defaultValue={catName()} placeholder={t("namePh")}
-                  onMouseDown={stop}
-                  onChange={(e) => {
-                    const v = e.target.value.trim();
-                    writePref(K_NAME, v || DEFAULT_NAME);
-                  }}
-                />
-              ) : null}
-              <span className="loveH">♥</span><span className="loveN">{love}</span>
-            </span>
-          </div>
-          <div className="petRow">
-            <span className="petKey"><T k="plays" /></span>
-            <button className="petAct" title={t("feed")} onMouseDown={stop} onClick={petDo("feed")}>🐟</button>
-            <button className="petAct" title={t("toy")} onMouseDown={stop} onClick={petDo("toy")}>🧶</button>
-            <button className="petAct" title={t("laser")} onMouseDown={stop} onClick={petDo("laser")}>🔴</button>
-            <button className="petAct" title={t("box")} onMouseDown={stop} onClick={petDo("box")}>📦</button>
-            <button className="petAct" title={t("bird")} onMouseDown={stop} onClick={petDo("bird")}>🐦</button>
-              <button className="coffeeSw" title={t("coffeeTip")} onMouseDown={stop}
-                      onClick={() => { try { run("open " + JSON.stringify(AFDIAN)); } catch (e) {} }}>
-                ☕
-              </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 // ─────────── 样式 ───────────
@@ -1384,6 +1414,24 @@ export const className = `
     opacity: 1;
     box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.28), 0 0 0 2px rgba(255,255,255,0.30);
   }
+
+  /* ── 数据源切换（Claude / Codex）── */
+  /* 两张卡都在 DOM 里，靠兄弟选择器挑 —— 只写 pref 等刷新的话，
+     那几秒里标题会写着 CODEX 而数字还是 Claude 的，那是误导。 */
+  .srcWrap { display: contents; }
+  .v-codex { display: none; }
+  #cu-src:checked ~ .body .v-claude { display: none; }
+  #cu-src:checked ~ .body .v-codex  { display: block; }
+  .srcTabs { display: inline-flex; gap: 2px; align-items: center; }
+  .srcTab {
+    cursor: pointer; padding: 2px 7px; border-radius: 7px;
+    color: rgba(245,245,247,0.34); letter-spacing: 0.6px;
+    transition: color 180ms ease, background 180ms ease;
+  }
+  .srcTab:hover { color: rgba(245,245,247,0.7); background: rgba(255,255,255,0.06); }
+  .tab-claude { color: #fff; background: rgba(255,255,255,0.10); }
+  #cu-src:checked ~ .body .tab-claude { color: rgba(245,245,247,0.34); background: transparent; }
+  #cu-src:checked ~ .body .tab-codex  { color: #fff; background: rgba(255,255,255,0.10); }
 
   /* ── 中英切换 ── */
   /* 两份文案都在 DOM 里，用兄弟选择器挑显示哪份 —— 切换是瞬时的，

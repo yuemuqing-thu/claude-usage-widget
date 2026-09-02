@@ -4,8 +4,16 @@
 # 变量  : DAYS=逗号分隔的 14 个日期（旧→新）  TODAY=今天  NOW=epoch  SNAP=快照文件路径
 # stdout: 一整段 JSON
 
-# ---- 各模型单价（美元 / 百万 token），与官方价目表一致 ----
+# ---- 各模型单价（美元 / 百万 token）----
+# PRICES 变量决定用哪张表："claude"（默认）或 "codex"。
 function price_in(m) {
+  if (PRICES == "codex") {
+    if (m ~ /gpt-5.*mini|o4-mini|o3-mini/) return 0.25
+    if (m ~ /gpt-5|codex/)                 return 1.25
+    if (m ~ /o3/)                          return 2
+    if (m ~ /gpt-4\.1/)                    return 2
+    return 1.25
+  }
   if (m ~ /fable|mythos/)  return 10
   if (m ~ /sonnet-5/)      return 2
   if (m ~ /sonnet/)        return 3
@@ -13,6 +21,13 @@ function price_in(m) {
   return 5                                  # opus 系列，也作为兜底
 }
 function price_out(m) {
+  if (PRICES == "codex") {
+    if (m ~ /gpt-5.*mini|o4-mini|o3-mini/) return 2
+    if (m ~ /gpt-5|codex/)                 return 10
+    if (m ~ /o3/)                          return 8
+    if (m ~ /gpt-4\.1/)                    return 8
+    return 10
+  }
   if (m ~ /fable|mythos/)  return 50
   if (m ~ /sonnet-5/)      return 10
   if (m ~ /sonnet/)        return 15
@@ -20,15 +35,23 @@ function price_out(m) {
   return 25
 }
 
-# 缓存写入按 1.25×（5 分钟）/ 2×（1 小时）输入价，缓存读取按 0.1× 输入价
+# Claude：缓存写入 1.25×（5 分钟）/ 2×（1 小时）输入价，缓存读取 0.1× 输入价
+# Codex：只有 cached_input_tokens 一档，按 0.1× 输入价；第 4 列是 reasoning，
+#        它属于输出计费，所以按输出价算。
 function calc_cost(m, i, o, c5, c1, cr,   pi, po) {
   pi = price_in(m); po = price_out(m)
+  if (PRICES == "codex")
+    return (i * pi + c5 * pi * 0.1 + (o + c1) * po) / 1000000
   return (i * pi + c5 * pi * 1.25 + c1 * pi * 2 + cr * pi * 0.1 + o * po) / 1000000
 }
 
 # claude-opus-4-8 -> "Opus 4.8"
 function pretty(m,   s, n, a, i, fam, ver) {
-  s = m; sub(/^claude-/, "", s)
+  s = m
+  if (s ~ /^gpt-|^o[0-9]/) {                # OpenAI 的名字本来就短，别拆
+    gsub(/-/, " ", s); return toupper(substr(s,1,1)) substr(s,2)
+  }
+  sub(/^claude-/, "", s)
   n = split(s, a, "-")
   fam = toupper(substr(a[1], 1, 1)) substr(a[1], 2)
   ver = ""

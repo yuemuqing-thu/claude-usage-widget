@@ -74,11 +74,145 @@ CMD="${1:-install}"
 case "$CMD" in
   install|--install)     ACTION=install ;;
   uninstall|--uninstall) ACTION=uninstall ;;
+  doctor)                ACTION=doctor ;;
+  codex)                 ACTION=codex ;;
   -h|--help|help)
-    say "用法：claude-usage-widget [install|uninstall]"
+    say "用法："
+    say "  claude-usage-widget install      安装并启用"
+    say "  claude-usage-widget uninstall    卸载"
+    say "  claude-usage-widget codex on     打开 Codex 支持（会读本机 Codex 凭据）"
+    say "  claude-usage-widget codex off    关掉"
+    say "  claude-usage-widget doctor       打印诊断信息（值已脱敏，可以直接发给别人）"
     exit 0 ;;
-  *) die "未知命令：$CMD（可用：install / uninstall）" ;;
+  *) die "未知命令：$CMD（可用：install / uninstall / codex / doctor）" ;;
 esac
+
+STATE_DIR="$HOME/.claude/usage-widget"
+
+# ═══════════════════════ codex 开关 ═══════════════════════
+if [ "$ACTION" = "codex" ]; then
+  mkdir -p "$STATE_DIR" 2>/dev/null
+  case "${2:-}" in
+    on)
+      : > "$STATE_DIR/codex.on"
+      say ""
+      step "已打开 Codex 支持"
+      printf "\n"
+      warn "打开之后会发生这些事，请确认你接受："
+      printf "    ${DIM}· 读取 ~/.codex/auth.json 里的登录凭据${R}\n"
+      printf "    ${DIM}· 拿它去问 https://chatgpt.com/backend-api/wham/usage 要额度${R}\n"
+      printf "    ${DIM}· 凭据只发给 chatgpt.com 自己，不经任何第三方${R}\n"
+      printf "    ${DIM}· 这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」${R}\n"
+      printf "\n    ${DIM}不想要了：claude-usage-widget codex off${R}\n\n"
+      exit 0 ;;
+    off)
+      rm -f "$STATE_DIR/codex.on" "$STATE_DIR/codex-snapshot.env" 2>/dev/null
+      rm -rf "$STATE_DIR/cache-codex" 2>/dev/null
+      say ""; step "已关闭 Codex 支持，相关缓存和快照都删了"; say ""
+      exit 0 ;;
+    *)
+      if [ -f "$STATE_DIR/codex.on" ]; then say "Codex 支持：已打开"; else say "Codex 支持：未打开"; fi
+      say "用法：claude-usage-widget codex [on|off]"
+      exit 0 ;;
+  esac
+fi
+
+# ═══════════════════════ doctor ═══════════════════════
+# 打印诊断信息。所有值都脱敏 —— 输出可以直接发给别人看。
+if [ "$ACTION" = "doctor" ]; then
+  ok()   { printf "  ${OK}✓${R} %s\n" "$*"; }
+  no()   { printf "  ${ERR}✗${R} %s\n" "$*"; }
+  info() { printf "    ${DIM}%s${R}\n" "$*"; }
+
+  say ""
+  step "环境"
+  info "macOS $(sw_vers -productVersion 2>/dev/null || echo '?')  $(uname -m)"
+  info "挂件版本 $(sed -n 's/^const PET_VERSION = \([0-9]*\).*/pet v\1/p' "$WIDGET_SRC/index.jsx" 2>/dev/null || echo '?')"
+  for c in curl awk osascript; do
+    command -v "$c" >/dev/null 2>&1 && ok "$c" || no "$c 缺失"
+  done
+
+  say ""
+  step "Claude"
+  [ -d "$HOME/.claude/projects" ] && ok "会话目录存在（$(find "$HOME/.claude/projects" -name '*.jsonl' 2>/dev/null | wc -l | tr -d ' ') 个 jsonl）" \
+                                  || no "没有 ~/.claude/projects"
+  if [ -f "$STATE_DIR/snapshot.env" ]; then
+    _age=$(( $(date +%s) - $(stat -f %m "$STATE_DIR/snapshot.env" 2>/dev/null || echo 0) ))
+    ok "额度快照存在（${_age} 秒前写的）"
+    info "字段：$(cut -d= -f1 "$STATE_DIR/snapshot.env" 2>/dev/null | tr '\n' ' ')"
+  else
+    no "没有额度快照 —— statusLine 没配好，或还没跑过 Claude Code"
+  fi
+  info "缓存 $(ls "$STATE_DIR/cache"/*.agg 2>/dev/null | wc -l | tr -d ' ') 个"
+
+  say ""
+  step "Codex"
+  CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+  if [ -f "$STATE_DIR/codex.on" ]; then ok "支持已打开"; else no "支持未打开（claude-usage-widget codex on）"; fi
+  if [ -d "$CODEX_HOME" ]; then
+    ok "CODEX_HOME = $CODEX_HOME"
+    _n=$(find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" -name '*.jsonl' 2>/dev/null | wc -l | tr -d ' ')
+    info "会话文件 $_n 个"
+    if [ "$_n" -gt 0 ]; then
+      _f=$(find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" -name '*.jsonl' 2>/dev/null | head -1)
+      _tc=$(grep -c 'token_count' "$_f" 2>/dev/null || echo 0)
+      info "抽样文件含 token_count 事件 $_tc 条"
+      # 用量事件的键名（只有键，没有值）
+      if [ "$_tc" -gt 0 ]; then
+        info "该事件的键名："
+        grep -m1 'token_count' "$_f" 2>/dev/null | osascript -l JavaScript -e '
+          function run(argv){ return ""; }' >/dev/null 2>&1
+        grep -m1 'token_count' "$_f" 2>/dev/null \
+          | tr ',{}' '\n\n\n' | grep -o '"[a-z_]*":' | sort -u | tr -d '":' | tr '\n' ' ' \
+          | fold -w 70 -s | sed 's/^/      /'
+        printf "\n"
+      fi
+      _parsed=$(awk -v TZOFF=0 -f "$WIDGET_SRC/lib/scan-codex.awk" "$_f" 2>/dev/null | wc -l | tr -d ' ')
+      if [ "$_parsed" -gt 0 ]; then ok "解析器能读出 $_parsed 组（日期×模型）"
+      else no "解析器读不出东西 —— 格式跟预期不符，请把上面那行键名发给作者"; fi
+    fi
+    if [ -f "$CODEX_HOME/auth.json" ]; then
+      ok "auth.json 存在"
+      info "顶层键：$(tr ',{}' '\n\n\n' < "$CODEX_HOME/auth.json" | grep -o '"[a-zA-Z_]*":' | sort -u | tr -d '":' | tr '\n' ' ')"
+      _has=$(osascript -l JavaScript -e '
+        function run(argv){
+          var s=$.NSString.stringWithContentsOfFileEncodingError($(argv[0]),4,null);
+          if(!s) return "读不到";
+          var d; try{ d=JSON.parse(ObjC.unwrap(s)); }catch(e){ return "JSON 解析失败"; }
+          var t=d.tokens||d.token||d;
+          var at=t.access_token||t.accessToken||d.access_token||"";
+          var ac=t.account_id||t.accountId||d.account_id||"";
+          return (at?"access_token 有("+at.length+"字符)":"access_token 缺失")+"  "+
+                 (ac?"account_id 有("+ac.length+"字符)":"account_id 缺失");
+        }' "$CODEX_HOME/auth.json" 2>/dev/null)
+      info "$_has"
+    else
+      no "没有 auth.json —— 没登录过 Codex？"
+    fi
+    if [ -f "$STATE_DIR/codex-snapshot.env" ]; then
+      _cage=$(( $(date +%s) - $(stat -f %m "$STATE_DIR/codex-snapshot.env" 2>/dev/null || echo 0) ))
+      ok "额度快照存在（${_cage} 秒前）"
+      info "字段：$(cut -d= -f1 "$STATE_DIR/codex-snapshot.env" 2>/dev/null | tr '\n' ' ')"
+    else
+      no "没有额度快照 —— 接口没通，或还没打开支持"
+    fi
+  else
+    no "没有 $CODEX_HOME —— 这台机器没装 Codex"
+  fi
+
+  say ""
+  step "采集器输出"
+  _out=$(sh "$WIDGET_SRC/lib/collect.sh" 2>/dev/null | head -c 400)
+  if [ -n "$_out" ]; then
+    ok "collect.sh 有输出（前 400 字节）"
+    printf "%s\n" "$_out" | fold -w 76 -s | sed 's/^/      /'
+  else
+    no "collect.sh 没有输出"
+  fi
+  say ""
+  printf "  ${DIM}以上内容不含任何 token、账号或会话内容，可以直接截图发给作者。${R}\n\n"
+  exit 0
+fi
 
 # ═══════════════════════ 卸载 ═══════════════════════
 if [ "$ACTION" = "uninstall" ]; then
