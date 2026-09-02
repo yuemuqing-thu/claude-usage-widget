@@ -35,14 +35,37 @@ function civil_from_days(z,   era, doe, yoe, y, doy, mp, d, m) {
   return sprintf("%04d-%02d-%02d", y, m, d)
 }
 
-# 在 s 里找 key 后面的整数。key 形如 "input_tokens":
-function num_after(s, key, from,   p, t) {
-  p = index(substr(s, from), "\"" key "\":")
-  if (p == 0) return -1
-  t = substr(s, from + p - 1 + length(key) + 3)
-  gsub(/^[ \t]+/, "", t)
+# JSON 冒号前后都可能有空格（"key" : 1），所以不能匹配字面量 "key":。
+# 先定位 "key"，再跳过空白和冒号，返回值起始处的绝对位置；找不到返回 0。
+function after_key(s, key, from,   p, i, n) {
+  p = index(substr(s, from), "\"" key "\"")
+  if (p == 0) return 0
+  i = from + p - 1 + length(key) + 2          # 跳过 "key"
+  n = length(s)
+  while (i <= n && substr(s, i, 1) ~ /[ \t]/) i++
+  if (substr(s, i, 1) != ":") return 0
+  i++
+  while (i <= n && substr(s, i, 1) ~ /[ \t]/) i++
+  return i
+}
+
+# 在 s 里找 key 对应的整数值
+function num_after(s, key, from,   i, t) {
+  i = after_key(s, key, from)
+  if (i == 0) return -1
+  t = substr(s, i)
   if (t !~ /^-?[0-9]/) return -1
   return t + 0
+}
+
+# 在 s 里找 key 对应的字符串值
+function str_after(s, key, from,   i, rest, q) {
+  i = after_key(s, key, from)
+  if (i == 0) return ""
+  if (substr(s, i, 1) != "\"") return ""
+  rest = substr(s, i + 1)
+  q = index(rest, "\"")
+  return (q > 1) ? substr(rest, 1, q - 1) : ""
 }
 
 # 找 key 最后一次出现的位置（1 起；找不到返回 0）
@@ -60,7 +83,6 @@ BEGIN {
   TOK_PAT   = "\"token_count\""
   LAST_PAT  = "\"last_token_usage\""
   TOTAL_PAT = "\"total_token_usage\""
-  TS_PAT    = "\"timestamp\":\""
 }
 
 {
@@ -68,23 +90,17 @@ BEGIN {
   if (index(line, TOK_PAT) == 0) next        # 不是用量事件
 
   # ---- 时间戳 → 本地日期 ----
-  tp = last_pos(line, TS_PAT)
-  if (tp == 0) next
-  ts = substr(line, tp + length(TS_PAT), 20)
-  if (ts !~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}T/) next
+  ts = str_after(line, "timestamp", 1)
+  if (ts == "") next
+  if (ts !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T/) next
   Y = substr(ts,1,4)+0; M = substr(ts,6,2)+0; D = substr(ts,9,2)+0
   hh = substr(ts,12,2)+0; mm = substr(ts,15,2)+0; ss = substr(ts,18,2)+0
   epoch = days_from_civil(Y,M,D) * 86400 + hh*3600 + mm*60 + ss
   day = civil_from_days(int((epoch + TZOFF) / 86400))
 
   # ---- 模型 ----
-  model = "unknown"
-  mp = last_pos(line, "\"model\":\"")
-  if (mp > 0) {
-    rest = substr(line, mp + 9)
-    q = index(rest, "\"")
-    if (q > 1) model = substr(rest, 1, q - 1)
-  }
+  model = str_after(line, "model", 1)
+  if (model == "") model = "unknown"
 
   # ---- token ----
   # 优先 last_token_usage（单次增量）；只有累计时按文件算差。

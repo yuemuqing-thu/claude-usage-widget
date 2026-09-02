@@ -92,7 +92,13 @@ scan_source "$STATE/cache"       "$HOME/.claude/projects" "$LIB/scan.awk"
 # 只有用户显式打开才去读凭据、发网络请求。默认全程离线。
 CODEX_ON=0
 [ -f "$STATE/codex.on" ] && CODEX_ON=1
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+# Codex 目录：环境变量 > 配置文件 > 默认。配置文件那条是给两种人用的 ——
+# 把 Codex 装在非标准位置的，和想拿假数据先看看界面长什么样的。
+CODEX_HOME="${CODEX_HOME:-}"
+if [ -z "$CODEX_HOME" ] && [ -f "$STATE/codex.home" ]; then
+  CODEX_HOME=$(head -1 "$STATE/codex.home" 2>/dev/null)
+fi
+[ -z "$CODEX_HOME" ] && CODEX_HOME="$HOME/.codex"
 
 if [ "$CODEX_ON" = "1" ]; then
   # 额度：最多每 60 秒问一次，别把接口打爆
