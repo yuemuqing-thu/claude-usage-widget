@@ -182,6 +182,34 @@ sh install.sh
 
 </details>
 
+### 连不上 GitHub（中国大陆网络）
+
+装不上通常卡在 GitHub，跟脚本本身无关。分三处，逐个绕开：
+
+**1. Homebrew 本身**——换中科大镜像：
+
+```sh
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
+export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
+```
+
+**2. 这个挂件**——`brew tap` 要连 GitHub，直接跳过它。拿到项目压缩包后：
+
+```sh
+tar -xzf claude-usage-widget-离线安装包.tar.gz
+cd claude-usage-widget && sh install.sh
+```
+
+脚本按自己所在目录找文件，不依赖 Homebrew，效果跟 `brew` 装完全一样。卸载同样是 `sh install.sh uninstall`。
+
+**3. Übersicht**——好消息是它**不在 GitHub**，安装包在官网 `tracesof.net`。
+`install.sh` 会在 `brew` 装不上时自动改走官网直链；真下不动就手动下载后拖进「应用程序」，再重新运行脚本：
+
+<https://tracesof.net/uebersicht/>
+
+> 只有 Übersicht 这一步是 70MB 左右，其余加起来不到 100KB。
+
 ### 卸载
 
 ```sh

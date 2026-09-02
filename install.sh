@@ -322,6 +322,28 @@ case "$RESULT" in
     ;;
 esac
 
+# Übersicht 的安装包放在官网 tracesof.net，不在 GitHub。
+# 所以 brew 装不上时（网络受限、cask 元数据拉不动等），直接走官网直链更稳。
+UBER_FALLBACK="https://tracesof.net/uebersicht/releases/Uebersicht-1.6.82.app.zip"
+fetch_ubersicht() {
+  _url=$(curl -fsSL --max-time 20 https://formulae.brew.sh/api/cask/ubersicht.json 2>/dev/null \
+         | sed -n 's/.*"url":"\([^"]*\.zip\)".*/\1/p' | head -1)
+  [ -z "${_url}" ] && _url="${UBER_FALLBACK}"
+  _tmp=$(mktemp -d) || return 1
+  printf "    ${DIM}从 %s 下载（约 70MB，慢的话请耐心等）$R\n" "${_url}"
+  if ! curl -fL --retry 3 --retry-delay 2 --progress-bar "${_url}" -o "${_tmp}/u.zip"; then
+    rm -rf "${_tmp}"; return 1
+  fi
+  if ! ditto -xk "${_tmp}/u.zip" "${_tmp}/x" 2>/dev/null; then rm -rf "${_tmp}"; return 1; fi
+  _app=$(find "${_tmp}/x" -maxdepth 2 -name "*.app" -type d | head -1)
+  [ -z "${_app}" ] && { rm -rf "${_tmp}"; return 1; }
+  rm -rf "/Applications/Übersicht.app"
+  if ! ditto "${_app}" "/Applications/Übersicht.app"; then rm -rf "${_tmp}"; return 1; fi
+  xattr -dr com.apple.quarantine "/Applications/Übersicht.app" 2>/dev/null || true
+  rm -rf "${_tmp}"
+  [ -d "/Applications/Übersicht.app" ]
+}
+
 # ── 3. 安装挂件 ──
 step "安装桌面挂件"
 if ! WD=$(find_widgets_dir); then
@@ -331,19 +353,24 @@ if ! WD=$(find_widgets_dir); then
   elif command -v brew >/dev/null 2>&1; then
     # Homebrew 不允许 formula 依赖 cask，所以宿主只能在这一步自己拉。
     warn "没找到 Übersicht（挂件的宿主），正在装……"
-    if brew install --cask ubersicht; then
+    if brew install --cask ubersicht || fetch_ubersicht; then
       WD="$HOME/Library/Application Support/Übersicht/widgets"
       mkdir -p "$WD"
       good "Übersicht 已装好"
     else
-      die "Übersicht 安装失败，请手动跑：brew install --cask ubersicht"
+      die "Übersicht 装不上。可手动下载后拖进「应用程序」：https://tracesof.net/uebersicht/"
     fi
   else
-    warn "没找到 Übersicht，请先安装："
-    printf "    ${DIM}brew install --cask ubersicht$R\n"
-    printf "    ${DIM}或从 https://tracesof.net/uebersicht/ 下载$R\n"
-    printf "\n    装好之后重新运行。\n\n"
-    exit 1
+    warn "没找到 Übersicht（挂件的宿主），正在从官网下载……"
+    if fetch_ubersicht; then
+      WD="$HOME/Library/Application Support/Übersicht/widgets"
+      mkdir -p "$WD"
+      good "Übersicht 已装好"
+    else
+      warn "下载失败，请手动装好 Übersicht 后重新运行："
+      printf "    ${DIM}https://tracesof.net/uebersicht/$R\n\n"
+      exit 1
+    fi
   fi
 fi
 
