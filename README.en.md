@@ -140,9 +140,17 @@ Bottom row has the accent colours, a 中/EN switch, and the cat toggle. Five col
 
 ## Install
 
-### Let Claude Code do it
+Three routes. Pick one — they all land in the same place.
 
-Easiest path — hand this to Claude Code:
+| Your situation | Route |
+| :-- | :-- |
+| Already using Claude Code | **A**, one sentence |
+| You have Homebrew | **B** |
+| Neither, or GitHub is slow where you are | **C**, two lines, nothing to install first |
+
+### A · Let Claude Code do it
+
+Hand it this:
 
 ```
 install https://github.com/yuemuqing-thu/claude-usage-widget for me
@@ -150,39 +158,63 @@ install https://github.com/yuemuqing-thu/claude-usage-widget for me
 
 It reads the README and figures the rest out.
 
-### Do it yourself (with Homebrew)
+### B · With Homebrew
 
 ```sh
 brew install yuemuqing-thu/tap/claude-usage-widget
 claude-usage-widget install
 ```
 
-The second command also pulls in [Übersicht](https://tracesof.net/uebersicht/).
+<details>
+<summary>Don't have Homebrew yet?</summary>
 
-That's it — look at the top-right of your desktop. **Open the panel, flip the paw switch, and the cat shows up.**
-
-### No Homebrew?
-
-Homebrew is the package manager most macOS developers use. Open Terminal, paste this, hit return ([from brew.sh](https://brew.sh)):
+It's the package manager most macOS developers use. Open Terminal, paste this, hit return ([from brew.sh](https://brew.sh)):
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-It'll print one or two more commands to add brew to your PATH — **follow those**, then come back to the section above.
+It'll print one or two more commands to add `brew` to your PATH — **follow those**, then come back and run the two lines above.
 
-<details>
-<summary>Really don't want Homebrew</summary>
-
-```sh
-git clone https://github.com/yuemuqing-thu/claude-usage-widget.git
-cd claude-usage-widget
-sh install.sh
-```
-
-You'll need Übersicht yourself: grab it from [the site](https://tracesof.net/uebersicht/) and drag it to Applications.
+Or skip it entirely: **route C doesn't need Homebrew at all.**
 
 </details>
+
+### C · Without Homebrew
+
+Paste these two lines into Terminal:
+
+```sh
+curl -fL https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
+cd claude-usage-widget-main && sh install.sh
+```
+
+**If GitHub is unreachable or crawling** (mainland China, mostly) — change only the first line by adding a mirror prefix, leave the second alone:
+
+```sh
+curl -fL https://ghfast.top/https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
+```
+
+Still stuck? Swap `https://ghfast.top/` for `https://gh-proxy.com/`.
+
+<details>
+<summary>What are those mirror URLs</summary>
+
+Third-party GitHub relays. I don't control them. Everything you download is plain text — `install.sh` plus the shell, awk and jsx under `claude-usage.widget/` — so you can read it before running it.
+
+</details>
+
+---
+
+### After it's installed
+
+The widget lives at the **top-right of your desktop**.
+
+**Open the panel with the arrow, flip the paw switch — and the cat shows up.**
+
+Seeing "no quota yet" is normal: the two rings are fed by a running Claude Code session. Start a `claude` session, say anything, and they light up a few seconds later.
+
+> [Übersicht](https://tracesof.net/uebersicht/), the host the widget runs in, is installed by the script. It isn't on GitHub — the download comes from `tracesof.net` and is about 70MB. That's the only large part of the install; everything else adds up to under 100KB. If it won't download, grab it from the site, drag it to Applications, and run the script again.
 
 ### Codex too
 
@@ -205,12 +237,22 @@ claude-usage-widget doctor
 
 Prints what it found and where it broke. **Everything is redacted** — tokens are reported as a character count, never a value — so the output is safe to paste into an issue.
 
+Installed via route C? Run `sh install.sh doctor` from the folder you extracted.
+
 ### Uninstall
+
+Installed via **A / B**:
 
 ```sh
 claude-usage-widget uninstall          # widget, config, cache
 brew uninstall claude-usage-widget     # the command itself
 brew uninstall --cask ubersicht        # the host, if you only got it for this
+```
+
+Installed via **C**, from the folder you extracted:
+
+```sh
+sh install.sh uninstall
 ```
 
 ---

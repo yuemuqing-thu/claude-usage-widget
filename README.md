@@ -138,9 +138,17 @@
 
 ## 安装
 
-### 让 Claude Code 替你装
+三条路，挑一条走完就行 —— 装出来的东西完全一样。
 
-最省事的办法 —— 把这句话丢给 Claude Code：
+| 你的情况 | 走哪条 |
+| :-- | :-- |
+| 已经在用 Claude Code | **A**，一句话的事 |
+| 有 Homebrew | **B** |
+| 两样都没有，或者连不上 GitHub | **C**，两行命令，什么都不用先装 |
+
+### A · 让 Claude Code 替你装
+
+把这句话丢给它：
 
 ```
 帮我装 https://github.com/yuemuqing-thu/claude-usage-widget
@@ -148,81 +156,65 @@
 
 它会读 README 自己搞定。
 
-### 自己动手（有 Homebrew）
+### B · 用 Homebrew
 
 ```sh
 brew install yuemuqing-thu/tap/claude-usage-widget
 claude-usage-widget install
 ```
 
-第二条会顺手把 [Übersicht](https://tracesof.net/uebersicht/) 一起装上。
+<details>
+<summary>还没有 Homebrew？</summary>
 
-装完桌面右上角就有了。**点开箭头，打开里面的爪印开关，猫就出来了。**
-
-### 没有 Homebrew
-
-Homebrew 是 macOS 上装软件用的工具。打开「终端」，粘贴这行回车（[官网](https://brew.sh)原文）：
+它是 macOS 上装软件用的工具。打开「终端」，粘贴这行回车（[官网](https://brew.sh)原文）：
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-装完它会让你再跑一两行命令把 brew 加进 PATH，**照着屏幕上的提示做完**，然后回到上一节。
+装完它会让你再跑一两行命令把 `brew` 加进 PATH，**照着屏幕上的提示做完**，再回来跑上面两行。
 
-<details>
-<summary>完全不想碰 Homebrew</summary>
-
-```sh
-git clone https://github.com/yuemuqing-thu/claude-usage-widget.git
-cd claude-usage-widget
-sh install.sh
-```
-
-Übersicht（挂件的宿主）脚本会自己装好，装不上时会改走[官网](https://tracesof.net/uebersicht/)直链。
+嫌麻烦的话，**路线 C 根本不需要 Homebrew**，两行就完事。
 
 </details>
 
-### 连不上 GitHub（中国大陆网络）
+### C · 不用 Homebrew
 
-装不上通常卡在 GitHub，跟脚本本身无关。**不需要 Homebrew**，把这两行贴进「终端」回车就行：
+把这两行贴进「终端」回车：
 
 ```sh
-curl -fL https://ghfast.top/https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
+curl -fL https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
 cd claude-usage-widget-main && sh install.sh
 ```
 
-第一行下不动就把 `https://ghfast.top/` 换成 `https://gh-proxy.com/`，其余不变。
-
-装完想挪走或卸载，在同一个目录里跑 `sh install.sh uninstall`。
-
-<details>
-<summary>这两个地址是什么 · 顺便说说 Homebrew 和 Übersicht</summary>
-
-`ghfast.top` / `gh-proxy.com` 是第三方的 GitHub 加速转发，我不控制它们。下载下来的东西全是纯文本（`install.sh`、`claude-usage.widget/` 里的 shell、awk 和 jsx），装之前可以直接打开读一遍。
-
-**Homebrew** 这条路也能走通，换中科大镜像即可，只是比上面多几步：
+**连不上 GitHub（中国大陆网络）** —— 只改第一行，加个镜像前缀，第二行不变：
 
 ```sh
-export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
-export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
+curl -fL https://ghfast.top/https://github.com/yuemuqing-thu/claude-usage-widget/archive/refs/heads/main.tar.gz | tar -xz
 ```
 
-但 `brew tap` 仍然要连 GitHub，所以直接用上面两行更省事。
+还是下不动就把 `https://ghfast.top/` 换成 `https://gh-proxy.com/`。
 
-**Übersicht**（挂件的宿主）不在 GitHub，安装包在官网 `tracesof.net`，脚本会自动下。真下不动就手动下载拖进「应用程序」，再重新运行脚本：<https://tracesof.net/uebersicht/>
+<details>
+<summary>这两个镜像地址是什么</summary>
 
-> 只有 Übersicht 这一步是 70MB 左右，其余加起来不到 100KB。
+第三方的 GitHub 加速转发，我不控制它们。下载下来的东西全是纯文本（`install.sh`，以及 `claude-usage.widget/` 里的 shell、awk 和 jsx），装之前可以直接打开读一遍。
+
+Homebrew 换成中科大镜像也能走通，但 `brew tap` 那步仍然要连 GitHub，所以不如直接用上面两行。
 
 </details>
 
-### 卸载
+---
 
-```sh
-claude-usage-widget uninstall          # 撤掉挂件、还原配置、清缓存
-brew uninstall claude-usage-widget     # 删掉命令本身
-brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为这个装的）
-```
+### 装完之后
+
+挂件在**桌面右上角**。
+
+**点开右侧箭头展开，打开里面的爪印开关 —— 猫就出来了。**
+
+如果只看到「还没拿到订阅额度」，那是正常的：两个环要由一个运行中的 Claude Code 会话喂数据，随便开一个 `claude` 会话说句话，几秒后就会亮。
+
+> 挂件的宿主 [Übersicht](https://tracesof.net/uebersicht/) 是脚本自动装的。它不在 GitHub，安装包在官网 `tracesof.net`，约 70MB —— 整个安装里只有这一步是大的，其余加起来不到 100KB。真下不动就自己从官网下载拖进「应用程序」，再重新运行一次脚本。
 
 ### 也想看 Codex 的用量
 
@@ -244,6 +236,24 @@ claude-usage-widget doctor
 ```
 
 会打印它找到了什么、哪一步断了。**所有值都脱敏**（token 只报长度，不报内容），输出可以直接截图发给别人看。
+
+走路线 C 装的，命令换成在解压出来的目录里跑 `sh install.sh doctor`。
+
+### 卸载
+
+走 **A / B** 装的：
+
+```sh
+claude-usage-widget uninstall          # 撤掉挂件、还原配置、清缓存
+brew uninstall claude-usage-widget     # 删掉命令本身
+brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为这个装的）
+```
+
+走 **C** 装的，在解压出来的目录里跑：
+
+```sh
+sh install.sh uninstall
+```
 
 ---
 
