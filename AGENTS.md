@@ -1,7 +1,7 @@
 # Claude Usage — 给接手的 agent
 
 macOS 的 Übersicht 桌面挂件：显示 Claude 和 Codex 的订阅额度、本地用量统计，
-外加一只在桌面上跑的像素猫。当前 v0.3.4，已发布到 GitHub + Homebrew tap。
+外加一只在桌面上跑的像素猫。当前 v0.3.5，已发布到 GitHub + Homebrew tap。
 
 ## 硬性约束
 
