@@ -3,7 +3,7 @@
 #
 # 同时采集两家，挂件里可以切：
 #   claude  额度来自 statusLine 写的快照；统计来自 ~/.claude/projects/**/*.jsonl
-#   codex   额度和统计都来自 ~/.codex/sessions/**/*.jsonl —— 全程不联网、不读凭据
+#   codex   额度和统计都来自 ~/.codex/sessions/**/*.jsonl(.zst) —— 全程不联网、不读凭据
 #
 # jsonl 是只追加的，所以按「已处理字节数」做增量扫描：首次全量几秒，之后只读新增部分。
 # 只用 sh + awk，无外部依赖。
@@ -42,13 +42,38 @@ done
 
 # ---------- 一个数据源的增量扫描 ----------
 # $1 缓存目录  $2 会话根目录  $3 scan 脚本
+# Codex 从 2026-06 起会把超过 7 天的会话原地压成 rollout-*.jsonl.zst。
+# 不读它们的话，热力图和柱状图只剩最近一周。macOS 不自带 zstd，找不到就跳过。
+ZCAT=""
+for _z in zstd zstdcat; do
+  if command -v "$_z" >/dev/null 2>&1; then
+    [ "$_z" = "zstd" ] && ZCAT="zstd -dcq" || ZCAT="zstdcat"
+    break
+  fi
+done
+
 scan_source() {
   _cache="$1"; _root="$2"; _scan="$3"
   mkdir -p "$_cache" 2>/dev/null
   [ -d "$_root" ] || return 0
 
-  find "$_root" -name '*.jsonl' -mtime -${WINDOW} -type f 2>/dev/null | while IFS= read -r f; do
+  find "$_root" \( -name '*.jsonl' -o -name '*.jsonl.zst' \) -mtime -${WINDOW} -type f 2>/dev/null \
+  | while IFS= read -r f; do
     [ -f "$f" ] || continue
+
+    # 压缩过的是冷文件，内容不会再变。缓存键要去掉 .zst —— 跟压缩前是同一个键，
+    # 否则同一份会话在改名前后各统计一遍，那几天的花费会翻倍。
+    case "$f" in
+      *.jsonl.zst)
+        key=$(printf '%s' "${f%.zst}" | cksum | awk '{ print $1 "-" $2 }')
+        agg="$_cache/$key.agg"
+        [ -f "$agg" ] && { touch "$agg"; continue; }   # 压缩前已经统计过了
+        [ -n "$ZCAT" ] || continue                      # 没有 zstd，只能跳过
+        tmp="$agg.tmp"
+        $ZCAT "$f" 2>/dev/null | awk -v TZOFF="$TZOFF" -f "$_scan" > "$tmp" 2>/dev/null
+        { echo "#size zst"; cat "$tmp"; } > "$agg" && rm -f "$tmp"
+        continue ;;
+    esac
     # 只在文件以换行结尾时推进游标，否则说明正好写到一半，这轮跳过
     [ "$(tail -c 1 "$f" 2>/dev/null | od -An -c | tr -d ' \n')" = '\n' ] || continue
 

@@ -178,6 +178,18 @@ if [ "$ACTION" = "doctor" ]; then
     fi
     # 额度环走的是会话记录里的 rate_limits 快照，不读凭据、不联网，
     # 所以这里只需要查三件事：字段在不在、解析得出来不、新不新。
+    # 压缩的历史会话
+    _zn=$(find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" \
+            -name '*.jsonl.zst' -type f 2>/dev/null | wc -l | tr -d ' ')
+    if [ "${_zn}" -gt 0 ]; then
+      if command -v zstd >/dev/null 2>&1 || command -v zstdcat >/dev/null 2>&1; then
+        ok "${_zn} 个压缩的历史会话，zstd 在，能读"
+      else
+        no "${_zn} 个压缩的历史会话读不了 —— 没装 zstd"
+        info "Codex 会把 7 天以上的会话压成 .jsonl.zst。装上就能看到完整历史："
+        info "  brew install zstd"
+      fi
+    fi
     _rlf=$(grep -rl '"rate_limits"' "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" \
              2>/dev/null | wc -l | tr -d ' ')
     if [ "${_rlf}" -gt 0 ]; then

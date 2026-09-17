@@ -226,6 +226,7 @@ Seeing "no quota yet" is normal: the two rings are fed by a running Claude Code 
 > - How fresh the rings are = when you last used Codex. The widget shows it ("3 min ago") and marks it when it goes stale
 > - Windows are matched by `window_minutes` (300 → 5h, 10080 → 7d), so a different plan won't swap them around
 > - If your Codex is too old to write that field, the rings say "no data" and the chart and heatmap carry on
+> - Sessions older than 7 days get compressed to `.jsonl.zst`; reading those needs `zstd` (installed automatically via `brew`; without it you only get the last week of history, and `doctor` says so)
 > - **No `~/.codex` on your machine means none of this runs**
 >
 > Don't want it: `claude-usage-widget codex off` (wipes the cache and snapshot too).
