@@ -277,7 +277,7 @@ Two independent sources, and it's worth knowing which is which:
 
 **Nothing is uploaded, and nothing is fetched.** The widget makes no network requests at all — with or without Codex.
 
-> The dollar figures are *equivalent* cost — what the same tokens would run on pay-as-you-go API pricing. On a subscription you don't pay them. It's there to compare days against each other, not to predict a bill.
+> Figures prefixed with `≈$` are *API-equivalent estimates* at standard list prices. Subscription users are not charged them. Fast mode and long-context multipliers cannot always be reconstructed from daily local totals; an unrecognized model shows `—` instead of silently using a made-up default price.
 
 ---
 

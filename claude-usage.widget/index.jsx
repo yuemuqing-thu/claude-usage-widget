@@ -23,7 +23,7 @@ const CARD_H = 500;
 
 export const command =
   "sh ./claude-usage.widget/lib/collect.sh 2>/dev/null || sh ./lib/collect.sh";
-export const refreshFrequency = 8000;
+export const refreshFrequency = 30000;
 
 // ─────────── 主题色 ───────────
 // a1/a2 是渐变两端，rgb 用于发光和热力图的透明度阶梯
@@ -63,8 +63,9 @@ const I18N = {
     resetIn: "{0}后重置", noData: "暂无数据", soon: "即将重置",
     dh: "{0}天{1}小时", hm: "{0}小时{1}分", mm: "{0}分钟",
     justNow: "刚刚", minAgo: "{0} 分钟前", hrAgo: "{0} 小时前", dayAgo: "{0} 天前",
+    snapshotTip: "最新本地会话快照", costTip: "按标准 API 标价估算，订阅用户不会被收取这笔费用",
     ctx: "当前会话上下文", last14: "近 14 天", heat: "活动热力图", nDays: "{0} 天",
-    today: "今日", todayTok: "今日 token", share: "{0}% 占比",
+    today: "今日", todayEstimate: "今日 · API 等价估算", todayTok: "今日 token", share: "{0}% 占比",
     less: "少", more: "多", months: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
     setupTitleCx: "还没拿到 Codex 额度",
     setupBodyCx: "额度来自 Codex 会话记录里的 rate_limits 快照。开一个 codex 会话说句话就会有；如果一直没有，多半是 Codex 版本太旧还不写这个字段。跑 claude-usage-widget doctor 看详情。",
@@ -85,8 +86,9 @@ const I18N = {
     resetIn: "resets in {0}", noData: "no data yet", soon: "resetting soon",
     dh: "{0}d {1}h", hm: "{0}h {1}m", mm: "{0}m",
     justNow: "just now", minAgo: "{0}m ago", hrAgo: "{0}h ago", dayAgo: "{0}d ago",
+    snapshotTip: "Latest local session snapshot", costTip: "Estimated at standard API list prices; subscription users are not charged this amount",
     ctx: "Context used", last14: "Last 14 days", heat: "Activity", nDays: "{0} days",
-    today: "Today", todayTok: "Tokens today", share: "{0}% share",
+    today: "Today", todayEstimate: "Today · API equivalent", todayTok: "Tokens today", share: "{0}% share",
     less: "less", more: "more", months: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
     setupTitleCx: "No Codex quota yet",
     setupBodyCx: "Quota comes from the rate_limits snapshot inside Codex session logs. Start a codex session and say anything. If it never shows up, your Codex is probably too old to write that field. Run claude-usage-widget doctor for details.",
@@ -114,7 +116,7 @@ const tr = (lang, k, ...a) => {
 // 用于 title 等属性：属性里塞不了 JSX，只能取当前语言，切换后下一次刷新才更新
 const t = (k, ...a) => tr(curLang(), k, ...a);
 // 用于正文：中英两份都渲染进 DOM，由 CSS 的 #cu-lang:checked 选显示哪份。
-// 挂件 8 秒才重渲染一次，靠 JS 切语言会卡顿 —— 主题色和花色也是这个套路。
+// 挂件定时重渲染，靠 JS 切语言会卡顿 —— 主题色和花色也是这个套路。
 const T = ({ k, a }) => (
   <span className="i18n">
     <span className="zh">{tr("zh", k, ...(a || []))}</span>
@@ -206,6 +208,7 @@ const fmtUsd = (n) => {
   if (n >= 10) return "$" + n.toFixed(1);
   return "$" + n.toFixed(2);
 };
+const activityValue = (d) => d && d.cost_complete === false ? (d.tok || 0) : (d.cost || 0);
 const fmtDur = (s) => {
   if (s == null || s <= 0) return t("soon");
   const d = Math.floor(s / 86400);
@@ -309,17 +312,19 @@ const Meter = ({ k, pct, base }) => {
 // 近 14 天柱状图
 const Bars = ({ days }) => {
   const recent = days.slice(-14);
-  const max = recent.reduce((m, d) => Math.max(m, d.cost), 0);
+  const max = recent.reduce((m, d) => Math.max(m, activityValue(d)), 0);
   return (
     <div className="bars">
-      {recent.map((d, i) => (
+      {recent.map((d, i) => {
+        const v = activityValue(d);
+        return (
         <div key={d.d} className="barSlot">
           <div
-            className={"bar" + (i === recent.length - 1 ? " today" : "") + (d.cost > 0 ? "" : " zero")}
-            style={{ height: (max > 0 && d.cost > 0 ? Math.max(3, (d.cost / max) * 38) : 2) + "px" }}
+            className={"bar" + (i === recent.length - 1 ? " today" : "") + (v > 0 ? "" : " zero")}
+            style={{ height: (max > 0 && v > 0 ? Math.max(3, (v / max) * 38) : 2) + "px" }}
           />
         </div>
-      ))}
+      );})}
     </div>
   );
 };
@@ -327,7 +332,7 @@ const Bars = ({ days }) => {
 // 91 天活动热力图。单日花费分布极偏（作者数据里峰值是中位数的几十倍），
 // 所以按非零值的分位数分 4 级，而不是线性映射。
 const Heat = ({ days }) => {
-  const nz = days.filter((d) => d.cost > 0).map((d) => d.cost).sort((a, b) => a - b);
+  const nz = days.map(activityValue).filter((v) => v > 0).sort((a, b) => a - b);
   const q = (p) => (nz.length ? nz[Math.min(nz.length - 1, Math.floor(nz.length * p))] : 0);
   const cuts = [q(0.25), q(0.5), q(0.75)];
   const level = (c) => {
@@ -371,8 +376,8 @@ const Heat = ({ days }) => {
             {w.map((c, j) => (
               <div
                 key={j}
-                className={"cell " + (c ? "l" + level(c.cost) : "l0 pad")}
-                title={c ? c.d + "  " + fmtUsd(c.cost) : ""}
+                className={"cell " + (c ? "l" + level(activityValue(c)) : "l0 pad")}
+                title={c ? c.d + "  " + (c.cost_complete === false ? fmtTok(c.tok) + " tokens" : fmtUsd(c.cost)) : ""}
               />
             ))}
           </div>
@@ -1032,8 +1037,11 @@ export const render = ({ output, error }) => {
     const today = data.today || { cost: 0, tok: 0 };
     const d14 = data.days14 || { cost: 0, tok: 0 };
     const topModel = (data.models && data.models[0]) || null;
-    const modelName = L.model || (topModel ? topModel.name : "—");
+    const knownTopModel = topModel && topModel.id !== "unknown";
+    const modelName = L.model || (knownTopModel ? topModel.name : "—");
     const plan = L.plan || null;          // Codex 给的套餐名，Claude 侧没有
+    const costText = (v) => v.cost_complete === false
+      ? "—" : (src === "codex" ? "≈" : "") + fmtUsd(v.cost || 0);
 
     return (
         <div className={stale ? "stale" : ""}>
@@ -1061,7 +1069,9 @@ export const render = ({ output, error }) => {
               </div>
               <div className="headRight">
                 {plan && <span className="plan" title={plan}>{plan}</span>}
-                <span className={"age" + (stale ? " warn" : "")}>{hasLimits ? fmtAge(L.age) : ""}</span>
+                <span className={"age" + (stale ? " warn" : "")} title={t("snapshotTip")}>
+                  {hasLimits ? fmtAge(L.age) : ""}
+                </span>
                 <Chevron id="cu-open" cls="up" />
               </div>
             </div>
@@ -1099,7 +1109,7 @@ export const render = ({ output, error }) => {
             )}
 
             <div className="plate">
-              <div className="plateHead"><span><T k="last14" /></span><span className="strong">{fmtUsd(d14.cost)}</span></div>
+              <div className="plateHead"><span><T k="last14" /></span><span className="strong" title={src === "codex" ? t("costTip") : ""}>{costText(d14)}</span></div>
               <Bars days={days} />
             </div>
 
@@ -1110,8 +1120,8 @@ export const render = ({ output, error }) => {
 
             <div className="foot">
               <div className="stat">
-                <div className="statVal">{fmtUsd(today.cost)}</div>
-                <div className="statKey"><T k="today" /></div>
+                <div className="statVal" title={src === "codex" ? t("costTip") : ""}>{costText(today)}</div>
+                <div className="statKey"><T k={src === "codex" ? "todayEstimate" : "today"} /></div>
               </div>
               <div className="stat">
                 <div className="statVal">{fmtTok(today.tok)}</div>
@@ -1119,7 +1129,7 @@ export const render = ({ output, error }) => {
               </div>
               <div className="stat right">
                 <div className="statVal accent">{modelName}</div>
-                <div className="statKey">{topModel ? <T k="share" a={[Math.round(topModel.share * 100)]} /> : ""}</div>
+                <div className="statKey">{knownTopModel ? <T k="share" a={[Math.round(topModel.share * 100)]} /> : ""}</div>
               </div>
             </div>
 
@@ -1289,7 +1299,7 @@ export const className = `
 
   .meter { flex: 1; min-width: 0; }
   .meterTop { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
-  .meterK { font-size: 9.5px; letter-spacing: 0.04em; color: rgba(245,245,247,0.42); white-space: nowrap; }
+  .meterK { font-size: 9.5px; letter-spacing: 0.04em; color: rgba(245,245,247,0.52); white-space: nowrap; }
   .meterV {
     font-size: 15px; font-weight: 590; letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
@@ -1323,7 +1333,7 @@ export const className = `
     color: rgba(245,245,247,0.88);
   }
   .headRight { display: flex; align-items: center; gap: 4px; }
-  .age { font-size: 10.5px; color: rgba(245,245,247,0.34); font-variant-numeric: tabular-nums; }
+  .age { font-size: 10.5px; color: rgba(245,245,247,0.50); font-variant-numeric: tabular-nums; }
   /* 套餐名长度不受我们控制，给个上限，别把标题栏挤变形 */
   .plan {
     font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase;
@@ -1357,11 +1367,11 @@ export const className = `
   .ringVal i { font-style: normal; font-size: 11px; font-weight: 500; opacity: 0.40; margin-left: 1.5px; }
   .ringVal .dash { opacity: 0.22; font-size: 19px; }
   .ringLabel { margin-top: 9px; font-size: 11.5px; font-weight: 500; color: rgba(245,245,247,0.80); }
-  .ringSub { margin-top: 2px; font-size: 10px; color: rgba(245,245,247,0.34); font-variant-numeric: tabular-nums; }
+  .ringSub { margin-top: 2px; font-size: 10px; color: rgba(245,245,247,0.48); font-variant-numeric: tabular-nums; }
 
   /* ── 上下文细条 ── */
   .ctx { display: flex; align-items: center; gap: 9px; margin: 12px 2px 2px; }
-  .ctxK { font-size: 10px; color: rgba(245,245,247,0.38); white-space: nowrap; }
+  .ctxK { font-size: 10px; color: rgba(245,245,247,0.50); white-space: nowrap; }
   .ctxBar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.10); overflow: hidden; }
   .ctxFill { height: 100%; border-radius: 2px; transition: width 700ms cubic-bezier(0.32,0.72,0,1); }
   .ctxV { font-size: 10px; color: rgba(245,245,247,0.55); font-variant-numeric: tabular-nums; }
@@ -1375,7 +1385,7 @@ export const className = `
   }
   .plateHead {
     display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 10.5px; color: rgba(245,245,247,0.40); margin-bottom: 11px;
+    font-size: 10.5px; color: rgba(245,245,247,0.52); margin-bottom: 11px;
   }
   .plateHead .strong {
     font-size: 11.5px; font-weight: 600; color: rgba(245,245,247,0.80);
@@ -1397,7 +1407,7 @@ export const className = `
   .heatMonths { display: flex; gap: 3px; margin-bottom: 5px; }
   .heatMonth {
     width: 12px; flex: none;
-    font-size: 8.5px; color: rgba(245,245,247,0.30); white-space: nowrap;
+    font-size: 8.5px; color: rgba(245,245,247,0.44); white-space: nowrap;
   }
   .heatGrid { display: flex; gap: 3px; }
   .heatCol { display: flex; flex-direction: column; gap: 3px; }
@@ -1410,7 +1420,7 @@ export const className = `
   .cell.pad { background: transparent; }
   .heatLegend {
     display: flex; align-items: center; gap: 3px;
-    margin-top: 9px; font-size: 8.5px; color: rgba(245,245,247,0.30);
+    margin-top: 9px; font-size: 8.5px; color: rgba(245,245,247,0.44);
   }
   .heatLegend i { width: 9px; height: 9px; border-radius: 2.5px; }
   .heatLegend span:first-child { margin-right: 2px; }
@@ -1424,7 +1434,7 @@ export const className = `
     color: rgba(245,245,247,0.95); font-variant-numeric: tabular-nums;
   }
   .statVal.accent { color: var(--a1); }
-  .statKey { margin-top: 2px; font-size: 9.5px; color: rgba(245,245,247,0.32); }
+  .statKey { margin-top: 2px; font-size: 9.5px; color: rgba(245,245,247,0.48); }
 
   /* ── 主题色选择 ── */
   .themes {
@@ -1459,17 +1469,17 @@ export const className = `
   .srcTabs { display: inline-flex; gap: 2px; align-items: center; }
   .srcTab {
     cursor: pointer; padding: 2px 7px; border-radius: 7px;
-    color: rgba(245,245,247,0.34); letter-spacing: 0.6px;
+    color: rgba(245,245,247,0.48); letter-spacing: 0.6px;
     transition: color 180ms ease, background 180ms ease;
   }
   .srcTab:hover { color: rgba(245,245,247,0.7); background: rgba(255,255,255,0.06); }
   .tab-claude { color: #fff; background: rgba(255,255,255,0.10); }
-  #cu-src:checked ~ .body .tab-claude { color: rgba(245,245,247,0.34); background: transparent; }
+  #cu-src:checked ~ .body .tab-claude { color: rgba(245,245,247,0.48); background: transparent; }
   #cu-src:checked ~ .body .tab-codex  { color: #fff; background: rgba(255,255,255,0.10); }
 
   /* ── 中英切换 ── */
   /* 两份文案都在 DOM 里，用兄弟选择器挑显示哪份 —— 切换是瞬时的，
-     不用等 8 秒后的重渲染。 */
+     不用等下一次定时重渲染。 */
   .i18n .en { display: none; }
   #cu-lang:checked ~ .body .i18n .zh { display: none; }
   #cu-lang:checked ~ .body .i18n .en { display: inline; }

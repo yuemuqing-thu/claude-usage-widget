@@ -156,6 +156,7 @@ function ts_key(ts,   t) {
   else        got_untimed = 1
   f_p = bf_p; f_r = bf_r; s_p = bs_p; s_r = bs_r
   lname = str_at(snap, "limit_name")
+  ptype = str_at(snap, "plan_type")
   # 事件自身的时间就是这份数据的新鲜度，不能用文件 mtime
   ev = str_at($0, "timestamp")
 }
@@ -168,4 +169,5 @@ END {
   if (f_p != "NA") { print "five_pct=" f_p;  if (f_r != "NA") print "five_reset=" f_r }
   if (s_p != "NA") { print "seven_pct=" s_p; if (s_r != "NA") print "seven_reset=" s_r }
   if (lname != "") print "limit_name=" lname
+  else if (ptype != "") print "limit_name=" toupper(substr(ptype, 1, 1)) substr(ptype, 2)
 }

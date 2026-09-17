@@ -245,23 +245,46 @@ fi
 if [ "$ACTION" = "uninstall" ]; then
   say "\n${B}卸载 Claude Usage 挂件$R\n"
 
-  if WD=$(find_widgets_dir); then
-    rm -rf "$WD/claude-usage.widget" && good "已移除挂件"
+  if [ -f "$SETTINGS" ]; then
+    RESULT=$(SETTINGS="$SETTINGS" PREVIOUS="$STATE/statusline.previous" osascript -l JavaScript -e '
+      ObjC.import("Foundation");
+      var env = $.NSProcessInfo.processInfo.environment;
+      var p = ObjC.unwrap(env.objectForKey("SETTINGS"));
+      var previous = ObjC.unwrap(env.objectForKey("PREVIOUS"));
+      var raw = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null));
+      var cfg;
+      try { cfg = JSON.parse(raw); } catch (e) { cfg = null; }
+      if (cfg === null || typeof cfg !== "object" || Array.isArray(cfg)) {
+        "UNPARSEABLE";
+      } else if (cfg.statusLine && String(cfg.statusLine.command || "").indexOf("claude-usage-statusline") >= 0) {
+        var action = "REMOVED";
+        if ($.NSFileManager.defaultManager.fileExistsAtPath(previous)) {
+          var saved = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(previous, $.NSUTF8StringEncoding, null));
+          if (saved === "__ABSENT__") delete cfg.statusLine;
+          else {
+            try { cfg.statusLine = JSON.parse(saved); action = "RESTORED"; }
+            catch (e) { action = "PREVIOUS_BAD"; }
+          }
+        } else { delete cfg.statusLine; }
+        if (action === "PREVIOUS_BAD") action;
+        else {
+        var s = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
+          s.writeToFileAtomicallyEncodingError(p, true, $.NSUTF8StringEncoding, null) ? action : "FAIL";
+        }
+      } else { "KEPT"; }
+    ' 2>/dev/null)
+    case "$RESULT" in
+      RESTORED*) good "已恢复安装前的 statusLine" ;;
+      REMOVED*)  good "已从 settings.json 移除 statusLine" ;;
+      KEPT*)     good "settings.json 使用的是其他 statusLine，已保留" ;;
+      UNPARSEABLE*) die "settings.json 不是合法 JSON；为避免留下失效配置，本次没有卸载" ;;
+      PREVIOUS_BAD*) die "安装前的 statusLine 备份损坏；为避免覆盖配置，本次没有卸载" ;;
+      *) die "settings.json 更新失败；为避免留下失效配置，本次没有卸载" ;;
+    esac
   fi
 
-  if [ -f "$SETTINGS" ]; then
-    osascript -l JavaScript -e '
-      ObjC.import("Foundation");
-      var p = ObjC.unwrap($.NSProcessInfo.processInfo.environment.objectForKey("SETTINGS"));
-      var raw = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null));
-      var cfg = JSON.parse(raw);
-      if (cfg.statusLine && String(cfg.statusLine.command || "").indexOf("claude-usage-statusline") >= 0) {
-        delete cfg.statusLine;
-        var s = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
-        s.writeToFileAtomicallyEncodingError(p, true, $.NSUTF8StringEncoding, null);
-        "removed";
-      } else { "kept"; }
-    ' >/dev/null 2>&1 && good "已从 settings.json 移除 statusLine"
+  if WD=$(find_widgets_dir); then
+    rm -rf "$WD/claude-usage.widget" && good "已移除挂件"
   fi
 
   rm -rf "$STATE" && good "已清除缓存与快照"
@@ -289,11 +312,12 @@ mkdir -p "$HOME/.claude"
 BACKUP="$SETTINGS.bak.$(date +%Y%m%d%H%M%S)"
 cp "$SETTINGS" "$BACKUP"
 
-SETTINGS="$SETTINGS" STATUSLINE="$STATUSLINE" osascript -l JavaScript <<'JXA' > /tmp/claude_usage_install_result 2>/tmp/claude_usage_install_err
+SETTINGS="$SETTINGS" STATUSLINE="$STATUSLINE" PREVIOUS="$STATE/statusline.previous" osascript -l JavaScript <<'JXA' > /tmp/claude_usage_install_result 2>/tmp/claude_usage_install_err
 ObjC.import("Foundation");
 var env = $.NSProcessInfo.processInfo.environment;
 var path = ObjC.unwrap(env.objectForKey("SETTINGS"));
 var cmd  = ObjC.unwrap(env.objectForKey("STATUSLINE"));
+var previous = ObjC.unwrap(env.objectForKey("PREVIOUS"));
 
 var raw = ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(path, $.NSUTF8StringEncoding, null));
 // 解析失败时绝不能当成空对象写回去 —— 那会抹掉用户原有的全部配置
@@ -308,10 +332,22 @@ var result;
 if (existing && existing.indexOf("claude-usage-statusline") < 0) {
   result = "CONFLICT\t" + existing;
 } else {
+  // 只在第一次接管时记录原值。重装不能覆盖这份记录，否则卸载时恢复不回去。
+  var fm = $.NSFileManager.defaultManager;
+  if (!fm.fileExistsAtPath(previous) && existing.indexOf("claude-usage-statusline") < 0) {
+    var prior = Object.prototype.hasOwnProperty.call(cfg, "statusLine")
+      ? JSON.stringify(cfg.statusLine) : "__ABSENT__";
+    var priorText = $.NSString.alloc.initWithUTF8String(prior);
+    if (!priorText.writeToFileAtomicallyEncodingError(previous, true, $.NSUTF8StringEncoding, null)) {
+      result = "PREVFAIL";
+    }
+  }
+  if (result !== "PREVFAIL") {
   cfg.statusLine = { type: "command", command: cmd, padding: 0 };
   var out = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
   var ok = out.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
   result = ok ? "OK" : "FAIL";
+  }
 }
 result;
 }
@@ -336,6 +372,10 @@ case "$RESULT" in
   UNPARSEABLE*)
     warn "settings.json 不是合法 JSON，没有改动它。修好之后重跑本脚本，或手动加入："
     printf "    ${DIM}\"statusLine\": { \"type\": \"command\", \"command\": \"%s\" }$R\n" "$STATUSLINE"
+    rm -f "$BACKUP"
+    ;;
+  PREVFAIL*)
+    warn "无法保存安装前的 statusLine，没有修改 settings.json"
     rm -f "$BACKUP"
     ;;
   *)
