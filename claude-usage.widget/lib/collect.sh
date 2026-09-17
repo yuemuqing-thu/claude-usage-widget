@@ -3,7 +3,7 @@
 #
 # 同时采集两家，挂件里可以切：
 #   claude  额度来自 statusLine 写的快照；统计来自 ~/.claude/projects/**/*.jsonl
-#   codex   额度来自 codex-usage-fetch.sh 写的快照；统计来自 ~/.codex/sessions/**/*.jsonl
+#   codex   额度和统计都来自 ~/.codex/sessions/**/*.jsonl —— 全程不联网、不读凭据
 #
 # jsonl 是只追加的，所以按「已处理字节数」做增量扫描：首次全量几秒，之后只读新增部分。
 # 只用 sh + awk，无外部依赖。
@@ -103,15 +103,20 @@ fi
 if [ ! -f "$STATE/codex.off" ] && [ -d "$CODEX_HOME" ]; then CODEX_ON=1; fi
 
 if [ "$CODEX_ON" = "1" ]; then
-  # 额度：最多每 60 秒问一次，别把接口打爆
+  # 额度：Codex 每回合结束写的 token_count 事件里就带着服务端的 rate_limits
+  # 快照，所以直接从本地会话文件读，不需要凭据也不需要联网。
+  # 数据的新鲜度 = 你最后一次用 Codex 的时间，挂件会把它显示出来。
   CSNAP="$STATE/codex-snapshot.env"
-  need=1
-  if [ -f "$CSNAP" ]; then
-    age=$(( NOW - $(stat -f %m "$CSNAP" 2>/dev/null || echo 0) ))
-    [ "$age" -lt 60 ] && need=0
-  fi
-  if [ "$need" = "1" ] && [ -n "${BIN:-}" ] && [ -x "$BIN/codex-usage-fetch.sh" ]; then
-    "$BIN/codex-usage-fetch.sh" >/dev/null 2>&1 &
+  _rl=$( { find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" \
+             -name '*.jsonl' -type f -print0 2>/dev/null \
+           | xargs -0 stat -f '%m %N' 2>/dev/null \
+           | sort -rn | head -12 | cut -d' ' -f2- ; } | tr '\n' '\0' \
+         | xargs -0 grep -h '"rate_limits"' 2>/dev/null \
+         | awk -v NOW="$NOW" -f "$LIB/codex-limits.awk" 2>/dev/null )
+  if [ -n "$_rl" ]; then
+    printf '%s\n' "$_rl" > "$CSNAP.tmp.$$" 2>/dev/null \
+      && mv -f "$CSNAP.tmp.$$" "$CSNAP" 2>/dev/null
+    rm -f "$CSNAP.tmp.$$" 2>/dev/null
   fi
   scan_source "$STATE/cache-codex" "$CODEX_HOME/sessions"          "$LIB/scan-codex.awk"
   scan_source "$STATE/cache-codex" "$CODEX_HOME/archived_sessions" "$LIB/scan-codex.awk"

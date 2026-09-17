@@ -62,6 +62,8 @@ const I18N = {
     ctx: "当前会话上下文", last14: "近 14 天", heat: "活动热力图", nDays: "{0} 天",
     today: "今日", todayTok: "今日 token", share: "{0}% 占比",
     less: "少", more: "多", months: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+    setupTitleCx: "还没拿到 Codex 额度",
+    setupBodyCx: "额度来自 Codex 会话记录里的 rate_limits 快照。开一个 codex 会话说句话就会有；如果一直没有，多半是 Codex 版本太旧还不写这个字段。跑 claude-usage-widget doctor 看详情。",
     setupTitle: "还没拿到订阅额度",
     setupBody: "额度百分比只能由运行中的 Claude Code 会话提供。跑一次 claude-usage-widget install 配好 statusLine，然后开一个会话即可。",
     coats: "花色", plays: "玩法", loveTip: "亲密度",
@@ -81,6 +83,8 @@ const I18N = {
     ctx: "Context used", last14: "Last 14 days", heat: "Activity", nDays: "{0} days",
     today: "Today", todayTok: "Tokens today", share: "{0}% share",
     less: "less", more: "more", months: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    setupTitleCx: "No Codex quota yet",
+    setupBodyCx: "Quota comes from the rate_limits snapshot inside Codex session logs. Start a codex session and say anything. If it never shows up, your Codex is probably too old to write that field. Run claude-usage-widget doctor for details.",
     setupTitle: "No quota data yet",
     setupBody: "Percentages come from a running Claude Code session. Run claude-usage-widget install to set up the statusLine, then start a session.",
     coats: "Coat", plays: "Play", loveTip: "Affection",
@@ -208,6 +212,7 @@ const fmtDur = (s) => {
 };
 const fmtAge = (s) => {
   if (s == null) return "";
+  if (s < 0) s = 0;
   if (s < 90) return t("justNow");
   if (s < 3600) return t("minAgo", Math.floor(s / 60));
   if (s < 86400) return t("hrAgo", Math.floor(s / 3600));
@@ -1002,7 +1007,7 @@ export const render = ({ output, error }) => {
   // 两家的数据本来就都在同一份 JSON 里 —— 两张卡都渲染出来，由 CSS 选显示哪张。
   // 只写 pref 等下次刷新的话，那 8 秒里标题会写着 CODEX 而数字还是 Claude 的，
   // 那比延迟更糟，是误导。
-  const viewFor = (data) => {
+  const viewFor = (data, src) => {
     const L = data.limits || {};
     const five = L.five || null;
     const seven = L.seven || null;
@@ -1055,9 +1060,11 @@ export const render = ({ output, error }) => {
               </div>
             ) : (
               <div className="setup">
-                <div className="setupTitle"><T k="setupTitle" /></div>
+                <div className="setupTitle">
+                  <T k={src === "codex" ? "setupTitleCx" : "setupTitle"} />
+                </div>
                 <div className="setupBody">
-                  <T k="setupBody" />
+                  <T k={src === "codex" ? "setupBodyCx" : "setupBody"} />
                 </div>
               </div>
             )}
@@ -1157,8 +1164,8 @@ export const render = ({ output, error }) => {
     );
   };
 
-  const views = [<div key="claude" className="srcView v-claude">{viewFor(srcs.claude)}</div>];
-  if (hasCodex) views.push(<div key="codex" className="srcView v-codex">{viewFor(srcs.codex)}</div>);
+  const views = [<div key="claude" className="srcView v-claude">{viewFor(srcs.claude, "claude")}</div>];
+  if (hasCodex) views.push(<div key="codex" className="srcView v-codex">{viewFor(srcs.codex, "codex")}</div>);
 
   return shell(<div className="srcWrap">{views}</div>);
 

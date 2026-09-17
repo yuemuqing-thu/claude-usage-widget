@@ -220,12 +220,13 @@ Homebrew 换成中科大镜像也能走通，但 `brew tap` 那步仍然要连 G
 
 **不用做任何事** —— 装了 Codex 就自动一起显示，展开面板的标题会变成 **Claude / Codex** 两个页签，点一下就切。
 
-> **它会做什么，说清楚。** Codex 没有 Claude Code 那样的 statusLine 钩子（它的状态栏只能从内置项里选，不能跑自定义脚本），额度也不写进本地文件。所以要拿到那两个环，只能读 `~/.codex/auth.json` 里**你已有的登录凭据**，去问 ChatGPT 自己的后端接口。
+> **数字是怎么来的。** Codex 每个回合结束会往会话记录里写一条 `token_count` 事件，里面带着服务端返回的 `rate_limits` 快照 —— `used_percent`、`window_minutes`、`resets_at` 齐全。两个环直接读它。
 >
-> - 凭据**只发给 chatgpt.com 本身**，不经任何第三方
-> - 柱状图和热力图读的是本机会话记录，**不联网**
-> - 这是未公开接口，OpenAI 随时可能改；改了就自动降级成「暂无数据」，不影响 Claude 那边
-> - **机器上没有 `~/.codex` 就完全不触发** —— 不读凭据，也不发任何请求
+> - 额度和统计**全部读自本机 `~/.codex/sessions/`，不发任何网络请求，也不碰你的登录凭据**
+> - 环里的数字新鲜度 = 你最后一次用 Codex 的时间，挂件会直接显示（「3 分钟前」），太旧会标黄
+> - 两个窗口按 `window_minutes` 归位（300 → 5 小时，10080 → 7 天），换套餐也不会错位
+> - Codex 版本太旧、还不写这个字段的话，环显示「暂无数据」，柱状图和热力图照常
+> - **机器上没有 `~/.codex` 就完全不触发**
 >
 > 不想要：`claude-usage-widget codex off`（连缓存和快照一起删）
 
@@ -364,6 +365,19 @@ Claude Code 有个叫 **statusLine** 的扩展点：你配一个命令，它每�
 > ⚠️ **必然的限制**：额度百分比只在**有 Claude Code 会话运行时**才会更新。关掉所有会话之后，挂件显示的是最后一次已知的值，右上角会变成「23 分钟前」，超过 15 分钟两个环会自动变暗提示你数据已经旧了。
 >
 > 这个绕不过去 —— 除非去 Keychain 里掏 OAuth token 直接打内部接口，那是未公开的、随时会变的，也不适合分发给别人。
+
+**Codex 那边走的是另一条路**，而且更省事：它每个回合结束会往 `~/.codex/sessions/**/*.jsonl` 里写一条 `token_count` 事件，服务端返回的额度快照就挂在上面 ——
+
+```json
+"rate_limits": {
+  "primary":   { "used_percent": 67.5,  "window_minutes": 300,   "resets_at": 1789638682 },
+  "secondary": { "used_percent": 14.25, "window_minutes": 10080, "resets_at": 1790031482 }
+}
+```
+
+所以 Codex 的两个环**直接读本地文件就行，不用配 statusLine，也不用联网**。代价是同样的：数字停在你最后一次用 Codex 的时刻，太旧会标黄。
+
+> 这个项目一度走过另一条路：读 `~/.codex/auth.json` 里的登录凭据去打 ChatGPT 的私有接口。那条路能拿到实时数据，但要动你的凭据、依赖一个未公开接口、在网络受限的地方还根本不通 —— 跟上面那句「不适合分发给别人」是同一个道理。发现 `rate_limits` 本来就落在盘上之后，那套东西整个删掉了。
 
 ### 二、本地用量统计（柱状图 + 页脚）
 
@@ -590,4 +604,4 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 
 - [Übersicht](https://tracesof.net/uebersicht/) —— 桌面挂件宿主
 - 用量数据来自本机的 `~/.claude/` 和 `~/.codex/`，**不上传任何东西**
-- 只有一处联网：装了 Codex 时，用你本机的凭据向 `chatgpt.com` 官方接口查额度。没装就全程离线
+- **全程不联网**，一个字节都不往外发

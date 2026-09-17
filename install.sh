@@ -105,7 +105,7 @@ if [ "$ACTION" = "codex" ]; then
       rm -f "$STATE_DIR/codex-snapshot.env" 2>/dev/null
       rm -rf "$STATE_DIR/cache-codex" 2>/dev/null
       say ""; step "Codex 支持：已关闭"
-      printf "    ${DIM}相关缓存和快照都删了。不会再读凭据、也不会再联网。${R}\n"
+      printf "    ${DIM}相关缓存和快照都删了。${R}\n"
       printf "    ${DIM}想开回来：claude-usage-widget codex on${R}\n\n"
       exit 0 ;;
     *)
@@ -176,30 +176,40 @@ if [ "$ACTION" = "doctor" ]; then
       if [ "$_parsed" -gt 0 ]; then ok "解析器能读出 $_parsed 组（日期×模型）"
       else no "解析器读不出东西 —— 格式跟预期不符，请把上面那行键名发给作者"; fi
     fi
-    if [ -f "$CODEX_HOME/auth.json" ]; then
-      ok "auth.json 存在"
-      info "顶层键：$(tr ',{}' '\n\n\n' < "$CODEX_HOME/auth.json" | grep -o '"[a-zA-Z_]*":' | sort -u | tr -d '":' | tr '\n' ' ')"
-      _has=$(osascript -l JavaScript -e '
-        function run(argv){
-          var s=$.NSString.stringWithContentsOfFileEncodingError($(argv[0]),4,null);
-          if(!s) return "读不到";
-          var d; try{ d=JSON.parse(ObjC.unwrap(s)); }catch(e){ return "JSON 解析失败"; }
-          var t=d.tokens||d.token||d;
-          var at=t.access_token||t.accessToken||d.access_token||"";
-          var ac=t.account_id||t.accountId||d.account_id||"";
-          return (at?"access_token 有("+at.length+"字符)":"access_token 缺失")+"  "+
-                 (ac?"account_id 有("+ac.length+"字符)":"account_id 缺失");
-        }' "$CODEX_HOME/auth.json" 2>/dev/null)
-      info "$_has"
+    # 额度环走的是会话记录里的 rate_limits 快照，不读凭据、不联网，
+    # 所以这里只需要查三件事：字段在不在、解析得出来不、新不新。
+    _rlf=$(grep -rl '"rate_limits"' "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" \
+             2>/dev/null | wc -l | tr -d ' ')
+    if [ "${_rlf}" -gt 0 ]; then
+      ok "有 ${_rlf} 个会话文件带 rate_limits 字段"
+      _out=$( { find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" \
+                  -name '*.jsonl' -type f -print0 2>/dev/null \
+                | xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -12 | cut -d' ' -f2- ; } \
+              | tr '\n' '\0' | xargs -0 grep -h '"rate_limits"' 2>/dev/null \
+              | awk -v NOW="$(date +%s)" -f "$WIDGET_SRC/lib/codex-limits.awk" 2>/dev/null )
+      if [ -n "${_out}" ]; then
+        ok "解析器能读出额度"
+        printf '%s\n' "${_out}" | sed 's/^/      /'
+        _sa=$(printf '%s\n' "${_out}" | sed -n 's/^snapshot_at=//p')
+        if [ -n "${_sa}" ]; then
+          _age=$(( $(date +%s) - _sa ))
+          if [ "${_age}" -lt 0 ]; then
+            warn "这份额度的时间比本机时钟还新 —— 系统时间可能没对上"
+          else
+            info "这份额度来自 $(( _age / 60 )) 分钟前的那次 Codex 回合"
+            [ "${_age}" -gt 86400 ] && warn "超过一天没用过 Codex，环里是旧数据"
+          fi
+        fi
+      else
+        no "字段在、但解析不出来 —— 请把上面那行键名发给作者"
+      fi
     else
-      no "没有 auth.json —— 没登录过 Codex？"
+      no "会话记录里没有 rate_limits 字段"
+      info "额度环要靠它。开一个 codex 会话说句话就会写进去；"
+      info "一直没有的话多半是 Codex 版本太旧（这个字段是后加的）。"
     fi
     if [ -f "$STATE_DIR/codex-snapshot.env" ]; then
-      _cage=$(( $(date +%s) - $(stat -f %m "$STATE_DIR/codex-snapshot.env" 2>/dev/null || echo 0) ))
-      ok "额度快照存在（${_cage} 秒前）"
-      info "字段：$(cut -d= -f1 "$STATE_DIR/codex-snapshot.env" 2>/dev/null | tr '\n' ' ')"
-    else
-      no "没有额度快照 —— 接口没通，或还没打开支持"
+      info "已落盘的快照：$(cut -d= -f1 "$STATE_DIR/codex-snapshot.env" 2>/dev/null | tr '\n' ' ')"
     fi
   else
     no "没有 $CODEX_HOME —— 这台机器没装 Codex"
@@ -432,8 +442,7 @@ if [ -d "$_CH" ] && [ ! -f "$STATE_DIR/codex.off" ]; then
   step "顺便：检测到你装了 Codex，已自动一起显示"
   printf "    ${DIM}展开面板的标题会变成 Claude / Codex 两个页签，点一下就切。${R}\n\n"
   printf "    ${DIM}柱状图和热力图读的是本机 $_CH/sessions 里的会话记录。${R}\n"
-  printf "    ${DIM}两个额度环需要读 $_CH/auth.json 里你已有的登录凭据，${R}\n"
-  printf "    ${DIM}拿它去问 ChatGPT 官方接口 —— 凭据只发给 chatgpt.com，不经第三方。${R}\n\n"
+  printf "    ${DIM}额度和统计都读自 ${_CH}/sessions 里的会话记录，全程不联网。${R}\n\n"
   printf "    ${DIM}不想要：claude-usage-widget codex off${R}\n"
 fi
 

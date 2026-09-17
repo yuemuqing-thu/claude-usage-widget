@@ -220,12 +220,13 @@ Seeing "no quota yet" is normal: the two rings are fed by a running Claude Code 
 
 **Nothing to do** — if Codex is installed it shows up automatically. The panel header turns into **Claude / Codex** tabs; click to switch.
 
-> **Here's exactly what it does.** Codex has no statusLine hook the way Claude Code does — its status bar only takes built-in items, not custom scripts — and quota numbers never touch disk. The only way to get those two rings is to read the login credentials **already sitting in** `~/.codex/auth.json` and ask ChatGPT's own backend.
+> **Where the numbers come from.** At the end of every turn Codex writes a `token_count` event into its session log, carrying the server's `rate_limits` snapshot — `used_percent`, `window_minutes`, `resets_at`. The two rings read that directly.
 >
-> - Credentials go **to chatgpt.com and nowhere else** — no third party is involved
-> - The bar chart and heatmap are computed from local session files, **no network**
-> - It's an undocumented endpoint, so OpenAI can change it at any time. If that happens it quietly falls back to "no data" and Claude keeps working
-> - **No `~/.codex` on your machine means none of this runs** — no credential read, no requests
+> - Quota and stats are read **entirely from `~/.codex/sessions/` on your machine — no network requests, and your login credentials are never touched**
+> - How fresh the rings are = when you last used Codex. The widget shows it ("3 min ago") and marks it when it goes stale
+> - Windows are matched by `window_minutes` (300 → 5h, 10080 → 7d), so a different plan won't swap them around
+> - If your Codex is too old to write that field, the rings say "no data" and the chart and heatmap carry on
+> - **No `~/.codex` on your machine means none of this runs**
 >
 > Don't want it: `claude-usage-widget codex off` (wipes the cache and snapshot too).
 
@@ -273,7 +274,7 @@ Two independent sources, and it's worth knowing which is which:
 
 **Everything else** — the bar chart, the heatmap, the token counts — is computed locally from `~/.claude/projects/**/*.jsonl`, the transcripts Claude Code already writes. Those files are append-only, so the collector tracks a byte offset per file and only reads what's new. First run takes a couple of seconds; after that it's a few milliseconds.
 
-**Nothing is uploaded.** Without Codex installed, the widget makes no network requests at all. With it, the only outbound call is to `chatgpt.com` for your own quota numbers.
+**Nothing is uploaded, and nothing is fetched.** The widget makes no network requests at all — with or without Codex.
 
 > The dollar figures are *equivalent* cost — what the same tokens would run on pay-as-you-go API pricing. On a subscription you don't pay them. It's there to compare days against each other, not to predict a bill.
 
@@ -299,4 +300,4 @@ Code is MIT. The pixel art makes no copyright claim — take it.
 
 - [Übersicht](https://tracesof.net/uebersicht/) — the desktop widget host
 - Usage data is read from `~/.claude/` and `~/.codex/` on your own machine. **Nothing is uploaded.**
-- One outbound call, only if Codex is installed: your own credentials to `chatgpt.com` for quota numbers.
+- No outbound calls, ever.
