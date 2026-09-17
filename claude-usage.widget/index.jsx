@@ -1033,6 +1033,7 @@ export const render = ({ output, error }) => {
     const d14 = data.days14 || { cost: 0, tok: 0 };
     const topModel = (data.models && data.models[0]) || null;
     const modelName = L.model || (topModel ? topModel.name : "—");
+    const plan = L.plan || null;          // Codex 给的套餐名，Claude 侧没有
 
     return (
         <div className={stale ? "stale" : ""}>
@@ -1059,6 +1060,7 @@ export const render = ({ output, error }) => {
                 ) : (hasCodex ? "Codex Usage" : "Claude Usage")}
               </div>
               <div className="headRight">
+                {plan && <span className="plan" title={plan}>{plan}</span>}
                 <span className={"age" + (stale ? " warn" : "")}>{hasLimits ? fmtAge(L.age) : ""}</span>
                 <Chevron id="cu-open" cls="up" />
               </div>
@@ -1322,6 +1324,13 @@ export const className = `
   }
   .headRight { display: flex; align-items: center; gap: 4px; }
   .age { font-size: 10.5px; color: rgba(245,245,247,0.34); font-variant-numeric: tabular-nums; }
+  /* 套餐名长度不受我们控制，给个上限，别把标题栏挤变形 */
+  .plan {
+    font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: rgba(245,245,247,0.62); background: rgba(255,255,255,0.09);
+    padding: 1.5px 5px; border-radius: 5px; white-space: nowrap;
+    max-width: 88px; overflow: hidden; text-overflow: ellipsis;
+  }
   .age.warn { color: #FF9F0A; }
   .stale .ringWrap, .stale .meterBar { opacity: 0.45; }
 

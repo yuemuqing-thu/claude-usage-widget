@@ -55,16 +55,43 @@ function num_at(s, key,   i, t) {
   return (t == "" ? "NA" : t + 0)
 }
 
-function str_at(s, key,   i, t, e) {
+# 读一个 JSON 字符串。必须认转义 —— 直接找下一个引号会在 \" 处截断，
+# 而 limit_name 是服务端给的文本，我们不控制它的内容。
+function str_at(s, key,   i, n, c, out, esc) {
   i = after_key(s, key, 1)
-  if (i == 0) return ""
-  if (substr(s, i, 1) != "\"") return ""
-  t = substr(s, i + 1)
-  e = index(t, "\"")
-  return (e ? substr(t, 1, e - 1) : "")
+  if (i == 0 || substr(s, i, 1) != "\"") return ""
+  i++; n = length(s); out = ""; esc = 0
+  while (i <= n) {
+    c = substr(s, i, 1)
+    if (esc) {
+      if (c == "n") out = out "\n"
+      else if (c == "t") out = out "\t"
+      else if (c == "r") out = out "\r"
+      else if (c == "u") { out = out "?"; i += 4 }   # awk 拼不出 UTF-8，占位
+      else out = out c                                # \" \\ \/ 等原样取字符
+      esc = 0
+    }
+    else if (c == "\\") esc = 1
+    else if (c == "\"") return out
+    else out = out c
+    i++
+  }
+  return out
 }
 
-# ISO8601（UTC）→ epoch 秒。onetrueawk 没有 mktime，按公历天数公式自己算。
+# RFC3339 允许 Z，也允许 +HH:MM / -HH:MM。只按位置取时分秒会把带偏移的
+# 时间戳当成 UTC —— 东八区就是 8 小时的误差。返回需要补上的秒数。
+function tz_adjust(ts,   tail, p, sign, oh, om) {
+  tail = substr(ts, 11)
+  p = match(tail, /[+-][0-9][0-9]:?[0-9][0-9]$/)
+  if (p == 0) return 0
+  sign = substr(tail, p, 1)
+  oh = substr(tail, p + 1, 2) + 0
+  om = substr(tail, length(tail) - 1, 2) + 0
+  return (sign == "-" ? 1 : -1) * (oh * 3600 + om * 60)
+}
+
+# ISO8601 → epoch 秒。onetrueawk 没有 mktime，按公历天数公式自己算。
 function iso_epoch(ts,   y, mo, d, h, mi, se, yy, era, yoe, doy, doe, days) {
   if (ts !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T/) return 0
   y  = substr(ts, 1, 4) + 0;  mo = substr(ts, 6, 2) + 0;  d  = substr(ts, 9, 2) + 0
@@ -75,7 +102,7 @@ function iso_epoch(ts,   y, mo, d, h, mi, se, yy, era, yoe, doy, doe, days) {
   doy = int((153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5) + d - 1
   doe = yoe * 365 + int(yoe / 4) - int(yoe / 100) + doy
   days = era * 146097 + doe - 719468
-  return days * 86400 + h * 3600 + mi * 60 + se
+  return days * 86400 + h * 3600 + mi * 60 + se + tz_adjust(ts)
 }
 
 # ISO 时间戳 → 可比较的数字（只用来挑最新的一条，不做时区换算）

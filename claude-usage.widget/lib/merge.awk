@@ -120,6 +120,8 @@ END {
     }
     if ("ctx_pct" in S)  printf ",\n    \"ctx\": %.2f", S["ctx_pct"] + 0
     if ("model" in S)    printf ",\n    \"model\": \"%s\"", jesc(S["model"])
+    # Codex 会告诉你套餐名（Plus / Pro …），挂件在右上角显示
+    if ("limit_name" in S) printf ",\n    \"plan\": \"%s\"", jesc(S["limit_name"])
     printf "\n  "
   }
   printf "},\n"

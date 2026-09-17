@@ -12,6 +12,18 @@
 # ⚠️ 嵌套层级没在真机验证过。所以这里不假设结构，只在整行里按键名找值，
 #    并且优先用 last_token_usage（单次增量）；只有累计值时自己按文件算差。
 
+# RFC3339 允许 Z，也允许 +HH:MM / -HH:MM。只按位置取时分秒会把带偏移的
+# 时间戳当成 UTC —— 东八区就是 8 小时的误差。返回需要补上的秒数。
+function tz_adjust(ts,   tail, p, sign, oh, om) {
+  tail = substr(ts, 11)
+  p = match(tail, /[+-][0-9][0-9]:?[0-9][0-9]$/)
+  if (p == 0) return 0
+  sign = substr(tail, p, 1)
+  oh = substr(tail, p + 1, 2) + 0
+  om = substr(tail, length(tail) - 1, 2) + 0
+  return (sign == "-" ? 1 : -1) * (oh * 3600 + om * 60)
+}
+
 function days_from_civil(y, m, d,   era, yoe, doy, doe) {
   if (m <= 2) y--
   era = (y >= 0 ? int(y / 400) : int((y - 399) / 400))
@@ -95,7 +107,7 @@ BEGIN {
   if (ts !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T/) next
   Y = substr(ts,1,4)+0; M = substr(ts,6,2)+0; D = substr(ts,9,2)+0
   hh = substr(ts,12,2)+0; mm = substr(ts,15,2)+0; ss = substr(ts,18,2)+0
-  epoch = days_from_civil(Y,M,D) * 86400 + hh*3600 + mm*60 + ss
+  epoch = days_from_civil(Y,M,D) * 86400 + hh*3600 + mm*60 + ss + tz_adjust(ts)
   day = civil_from_days(int((epoch + TZOFF) / 86400))
 
   # ---- 模型 ----

@@ -28,7 +28,7 @@ function txt(n,acc){ acc=acc||[]; if(typeof n==='string'){acc.push(n);return acc
   if(n&&n.kids)n.kids.forEach(k=>txt(k,acc)); return acc; }
 function cls(tree){ return flat(tree,[]).map(n=>(n.props&&n.props.className)||'').join(' '); }
 
-const codexSrc={ok:true,limits:{snapshot_at:1,age:60,five:{pct:67.5,resets_at:9,in:900},seven:{pct:14.25,resets_at:9,in:9000}},days:[],today:{cost:0,tok:0},days14:{cost:0,tok:0},models:[]};
+const codexSrc={ok:true,limits:{snapshot_at:1,age:60,plan:'Plus',five:{pct:67.5,resets_at:9,in:900},seven:{pct:14.25,resets_at:9,in:9000}},days:[],today:{cost:0,tok:0},days14:{cost:0,tok:0},models:[]};
 const claudeSrc={ok:true,limits:{snapshot_at:1,age:60,five:{pct:30,resets_at:9,in:900},seven:{pct:10,resets_at:9,in:9000}},days:[],today:{cost:0,tok:0},days14:{cost:0,tok:0},models:[]};
 const cases=[
  ['两家都有',   {ok:true,gen:1,hasClaude:true, hasCodex:true, sources:{claude:claudeSrc,codex:codexSrc}}],
@@ -45,6 +45,7 @@ for(const [name,payload] of cases){
   const tabs=/srcTabs/.test(c), solo=(c.match(/v-solo/g)||[]).length,
         vc=/v-claude/.test(c), vx=/v-codex/.test(c);
   const title=/Codex Usage/.test(t)?'Codex Usage':(/Claude Usage/.test(t)?'Claude Usage':(/没找到/.test(t)?'(无数据源提示)':'?'));
+  const plans=nodes.filter(n=>n.props&&n.props.className==='plan').map(n=>txt(n).join(''));
   const pcts=[...new Set(nodes.filter(n=>n.props&&typeof n.props.pct==='number').map(n=>n.props.pct))].sort((a,b)=>a-b);
-  console.log(`  ${name.padEnd(22)} 环里的百分比=[${pcts}]  页签=${tabs?'有':'无'}  v-solo=${solo}  v-claude=${vc?'有':'无'} v-codex=${vx?'有':'无'}  标题=${title}  节点=${all.length}`);
+  console.log(`  ${name.padEnd(22)} 环里的百分比=[${pcts}] 套餐角标=[${plans}]  页签=${tabs?'有':'无'}  v-solo=${solo}  v-claude=${vc?'有':'无'} v-codex=${vx?'有':'无'}  标题=${title}  节点=${all.length}`);
 }
