@@ -12,7 +12,10 @@ import { run } from "uebersicht";
 // ─────────── 想改的东西都在这 ───────────
 const POSITION = { top: "48px", right: "48px" }; // 想靠左就把 right 换成 left
 const HEAT_WEEKS = 13;                            // 热力图周数
-const STALE_AFTER = 900;                          // 超过这么多秒判定快照过期
+const STALE_AFTER = 900;                          // Claude：statusLine 会话期间持续刷新，15 分钟没动就是旧的
+// Codex 的额度只在「完成一个回合」时才写进会话记录，中间隔多久都很正常，
+// 而且不消耗就不会变。用 Claude 那个 15 分钟会把准确的数字误判成过期。
+const STALE_AFTER_CX = 3600;
 
 // 拖动时用来判断该按上边缘还是下边缘吸附（近似值即可，只影响展开方向）
 const PILL_H = 62;
@@ -1012,7 +1015,7 @@ export const render = ({ output, error }) => {
     const five = L.five || null;
     const seven = L.seven || null;
     const hasLimits = !!(five || seven);
-    const stale = L.age != null && L.age > STALE_AFTER;
+    const stale = L.age != null && L.age > (src === "codex" ? STALE_AFTER_CX : STALE_AFTER);
 
     const days = data.days || [];
     const today = data.today || { cost: 0, tok: 0 };

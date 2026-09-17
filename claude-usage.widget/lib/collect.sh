@@ -11,7 +11,6 @@
 set -u
 
 LIB=$(cd "$(dirname "$0")" && pwd)
-BIN=$(cd "$LIB/../bin" 2>/dev/null && pwd)
 STATE="$HOME/.claude/usage-widget"
 WINDOW=91
 

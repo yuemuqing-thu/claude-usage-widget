@@ -92,8 +92,11 @@ function ts_key(ts,   t) {
   snap = obj_at($0, rl)
   if (snap == "") next
 
+  # 正常情况下按事件自带的 timestamp 挑最新的一条。但万一某个版本的信封
+  # 里没有这个字段，不能就此全部跳过 —— 退化成「文件里靠后的更新」。
   ts = ts_key(str_at($0, "timestamp"))
-  if (ts <= best_ts) next
+  if (ts > 0) { if (ts <= best_ts) next }
+  else        { if (best_ts > 0) next }        # 有带时间的候选就不用无时间的
 
   # 两个窗口都按 window_minutes 归位，不假定 primary 就是 5 小时。
   # 官方给的是 300 / 10080，但换套餐可能不一样，所以取最接近的那个。
@@ -122,7 +125,8 @@ function ts_key(ts,   t) {
   }
   if (bf_p == "NA" && bs_p == "NA") next
 
-  best_ts = ts
+  if (ts > 0) best_ts = ts
+  else        got_untimed = 1
   f_p = bf_p; f_r = bf_r; s_p = bs_p; s_r = bs_r
   lname = str_at(snap, "limit_name")
   # 事件自身的时间就是这份数据的新鲜度，不能用文件 mtime
@@ -130,7 +134,7 @@ function ts_key(ts,   t) {
 }
 
 END {
-  if (best_ts == 0) exit 1
+  if (best_ts == 0 && !got_untimed) exit 1
   e = iso_epoch(ev)
   if (e <= 0) e = NOW
   print "snapshot_at=" e
