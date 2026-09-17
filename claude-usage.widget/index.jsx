@@ -23,7 +23,7 @@ const CARD_H = 500;
 
 export const command =
   "sh ./claude-usage.widget/lib/collect.sh 2>/dev/null || sh ./lib/collect.sh";
-export const refreshFrequency = 30000;
+export const refreshFrequency = 15000;
 
 // ─────────── 主题色 ───────────
 // a1/a2 是渐变两端，rgb 用于发光和热力图的透明度阶梯

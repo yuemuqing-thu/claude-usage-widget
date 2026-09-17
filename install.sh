@@ -343,7 +343,9 @@ if (existing && existing.indexOf("claude-usage-statusline") < 0) {
     }
   }
   if (result !== "PREVFAIL") {
-  cfg.statusLine = { type: "command", command: cmd, padding: 0 };
+  // 新版 Claude Code 的事件触发在长回合生成期间可能很久不发生。定时刷新只会
+  // 重跑本地脚本，不发网络请求；让挂件能区分「会话仍活跃」和「快照真的旧了」。
+  cfg.statusLine = { type: "command", command: cmd, padding: 0, refreshInterval: 5 };
   var out = $.NSString.alloc.initWithUTF8String(JSON.stringify(cfg, null, 2) + "\n");
   var ok = out.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
   result = ok ? "OK" : "FAIL";

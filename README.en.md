@@ -273,6 +273,8 @@ Two independent sources, and it's worth knowing which is which:
 
 **The two rings** come from Claude Code's statusLine. Every time it refreshes, a small script writes the official percentages to a snapshot file. That means **the rings only update while a Claude Code session is running** — if the card dims, that's stale data, not a bug. Start a session and it lights up.
 
+The installer asks Claude Code to refresh that local status line every 5 seconds. Combined with the widget's 15-second polling interval, an active session normally appears fresh within 5–20 seconds, including during long-running turns.
+
 **Everything else** — the bar chart, the heatmap, the token counts — is computed locally from `~/.claude/projects/**/*.jsonl`, the transcripts Claude Code already writes. Those files are append-only, so the collector tracks a byte offset per file and only reads what's new. First run takes a couple of seconds; after that it's a few milliseconds.
 
 **Nothing is uploaded, and nothing is fetched.** The widget makes no network requests at all — with or without Codex.
