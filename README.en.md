@@ -218,7 +218,7 @@ Seeing "no quota yet" is normal: the two rings are fed by a running Claude Code 
 
 ### Codex too
 
-**Nothing to do** — if Codex is installed it shows up automatically. The panel header turns into **Claude / Codex** tabs; click to switch.
+**Nothing to do** — the widget follows what's on the machine: with both installed you get **Claude / Codex** tabs in the header, click to switch; with only one, you just get that one, no empty tab left over.
 
 > **Where the numbers come from.** At the end of every turn Codex writes a `token_count` event into its session log, carrying the server's `rate_limits` snapshot — `used_percent`, `window_minutes`, `resets_at`. The two rings read that directly.
 >

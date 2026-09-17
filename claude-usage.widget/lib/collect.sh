@@ -14,6 +14,11 @@ LIB=$(cd "$(dirname "$0")" && pwd)
 STATE="$HOME/.claude/usage-widget"
 WINDOW=91
 
+# 「这台机器装没装 Claude Code」不能看 ~/.claude 在不在 —— install.sh 自己就会
+# mkdir 它。得看 Claude Code 自己创建的东西：主配置文件，或者会话目录。
+CLAUDE_PROJ="${CLAUDE_PROJ:-$HOME/.claude/projects}"
+CLAUDE_CFG="${CLAUDE_CFG:-$HOME/.claude.json}"
+
 mkdir -p "$STATE" 2>/dev/null
 
 # ---------- 时间 ----------
@@ -85,7 +90,7 @@ emit_source() {
 }
 
 # ---------- Claude ----------
-scan_source "$STATE/cache"       "$HOME/.claude/projects" "$LIB/scan.awk"
+scan_source "$STATE/cache"       "$CLAUDE_PROJ" "$LIB/scan.awk"
 
 # ---------- Codex ----------
 # 默认跟随环境：机器上有 Codex 就启用，没有就完全不触发（也就不读凭据、不联网）。
@@ -129,8 +134,11 @@ else
   CX="null"
 fi
 
+HAS_CLAUDE=false
+if [ -f "$CLAUDE_CFG" ] || [ -d "$CLAUDE_PROJ" ]; then HAS_CLAUDE=true; fi
+
 HAS_CODEX=false
 [ "$CODEX_ON" = "1" ] && [ -d "$CODEX_HOME" ] && HAS_CODEX=true
 
-printf '{"ok":true,"gen":%s,"hasCodex":%s,"sources":{"claude":%s,"codex":%s}}\n' \
-  "$NOW" "$HAS_CODEX" "$CL" "$CX"
+printf '{"ok":true,"gen":%s,"hasClaude":%s,"hasCodex":%s,"sources":{"claude":%s,"codex":%s}}\n' \
+  "$NOW" "$HAS_CLAUDE" "$HAS_CODEX" "$CL" "$CX"

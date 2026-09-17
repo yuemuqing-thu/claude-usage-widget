@@ -59,6 +59,7 @@ const I18N = {
   zh: {
     expand: "展开 / 收起", home: "双击归位", loading: "正在读取用量…", err: "脚本出错：",
     h5: "5 小时", d7: "7 天", h5full: "5 小时会话", d7full: "7 天周额度",
+    noSrc: "这台机器上没找到 Claude Code，也没找到 Codex",
     resetIn: "{0}后重置", noData: "暂无数据", soon: "即将重置",
     dh: "{0}天{1}小时", hm: "{0}小时{1}分", mm: "{0}分钟",
     justNow: "刚刚", minAgo: "{0} 分钟前", hrAgo: "{0} 小时前", dayAgo: "{0} 天前",
@@ -80,6 +81,7 @@ const I18N = {
   en: {
     expand: "Expand / collapse", home: "Double-click to reset", loading: "Reading usage…", err: "Script error: ",
     h5: "5-hour", d7: "7-day", h5full: "5-hour session", d7full: "Weekly quota",
+    noSrc: "Neither Claude Code nor Codex found on this machine",
     resetIn: "resets in {0}", noData: "no data yet", soon: "resetting soon",
     dh: "{0}d {1}h", hm: "{0}h {1}m", mm: "{0}m",
     justNow: "just now", minAgo: "{0}m ago", hrAgo: "{0}h ago", dayAgo: "{0}d ago",
@@ -1001,9 +1003,18 @@ export const render = ({ output, error }) => {
 
   // 采集器现在一次吐两家。老格式（没有 sources）也认，免得升级期间白屏。
   const srcs = raw.sources || { claude: raw, codex: null };
-  const hasCodex = !!(raw.hasCodex && srcs.codex && srcs.codex.ok);
-  const data = (srcs[source] && srcs[source].ok) ? srcs[source] : srcs.claude;
+  const hasCodex  = !!(raw.hasCodex && srcs.codex && srcs.codex.ok);
+  // 老版本采集器不吐 hasClaude，那时候一定是只有 Claude，默认真。
+  const hasClaude = raw.hasClaude === undefined
+    ? !!(srcs.claude && srcs.claude.ok)
+    : !!(raw.hasClaude && srcs.claude && srcs.claude.ok);
+  const both = hasClaude && hasCodex;
+  // 只有一家时，忽略存着的切换状态，直接认那一家
+  const eff = both ? source : (hasCodex ? "codex" : "claude");
+  const data = (srcs[eff] && srcs[eff].ok) ? srcs[eff] : (srcs.claude || srcs.codex);
   if (!data || !data.ok) return shell(<div className="pill"><div className="hint"><T k="loading" /></div></div>);
+  if (!hasClaude && !hasCodex)
+    return shell(<div className="pill"><div className="hint"><T k="noSrc" /></div></div>);
 
   const pos = posStyle();
 
@@ -1040,12 +1051,12 @@ export const render = ({ output, error }) => {
               <div className="brand">
                 <span className="dot" title={t("home")} onDoubleClick={resetPos}
                       style={{ background: base.a2, boxShadow: "0 0 8px rgba(" + base.rgb + ",0.85)" }} />
-                {hasCodex ? (
+                {both ? (
                   <span className="srcTabs">
                     <label htmlFor="cu-src" className="srcTab tab-claude" onMouseDown={stop}>Claude</label>
                     <label htmlFor="cu-src" className="srcTab tab-codex"  onMouseDown={stop}>Codex</label>
                   </span>
-                ) : "Claude Usage"}
+                ) : (hasCodex ? "Codex Usage" : "Claude Usage")}
               </div>
               <div className="headRight">
                 <span className={"age" + (stale ? " warn" : "")}>{hasLimits ? fmtAge(L.age) : ""}</span>
@@ -1167,8 +1178,11 @@ export const render = ({ output, error }) => {
     );
   };
 
-  const views = [<div key="claude" className="srcView v-claude">{viewFor(srcs.claude, "claude")}</div>];
-  if (hasCodex) views.push(<div key="codex" className="srcView v-codex">{viewFor(srcs.codex, "codex")}</div>);
+  const views = [];
+  if (hasClaude) views.push(
+    <div key="claude" className={"srcView " + (both ? "v-claude" : "v-solo")}>{viewFor(srcs.claude, "claude")}</div>);
+  if (hasCodex) views.push(
+    <div key="codex" className={"srcView " + (both ? "v-codex" : "v-solo")}>{viewFor(srcs.codex, "codex")}</div>);
 
   return shell(<div className="srcWrap">{views}</div>);
 
@@ -1429,6 +1443,7 @@ export const className = `
   /* 两张卡都在 DOM 里，靠兄弟选择器挑 —— 只写 pref 等刷新的话，
      那几秒里标题会写着 CODEX 而数字还是 Claude 的，那是误导。 */
   .srcWrap { display: contents; }
+  .v-solo  { display: block; }
   .v-codex { display: none; }
   #cu-src:checked ~ .body .v-claude { display: none; }
   #cu-src:checked ~ .body .v-codex  { display: block; }
