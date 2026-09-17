@@ -93,7 +93,6 @@ function last_pos(s, key,   abs, rest, p, found) {
 
 BEGIN {
   FS = "\n"
-  TOK_PAT   = "\"token_count\""
   LAST_PAT  = "\"last_token_usage\""
   TOTAL_PAT = "\"total_token_usage\""
 
@@ -120,7 +119,9 @@ BEGIN {
     context_model = str_after(line, "model", 1)
     if (context_model != "") current_model = context_model
   }
-  if (index(line, TOK_PAT) == 0) next        # 不是用量事件
+  # 限定 token_count 必须是 type 的值，避免把标签等同名字符串当作用量。
+  # 日志里的命令文本带转义引号，不应作为真正的 JSON 字段参与匹配。
+  if (line !~ /"type"[ \t]*:[ \t]*"token_count"/) next
 
   # ---- 时间戳 → 本地日期 ----
   ts = str_after(line, "timestamp", 1)

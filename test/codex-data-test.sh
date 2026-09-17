@@ -9,6 +9,8 @@ trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 
 cat > "$TMP/first.jsonl" <<'EOF'
 {"timestamp":"2026-09-17T00:00:00Z","type":"turn_context","payload":{"model":"gpt-5.6-sol"}}
+{"timestamp":"2026-09-17T00:00:00Z","type":"response_item","payload":{"type":"custom_tool_call","input":"please inspect token_count and total_token_usage input_tokens 999999999 output_tokens 999999999"}}
+{"timestamp":"2026-09-17T00:00:00Z","type":"event_msg","payload":{"type":"diagnostic","label":"token_count","total_token_usage":{"input_tokens":999999999,"output_tokens":999999999}}}
 {"timestamp":"2026-09-17T00:00:01Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000000,"cached_input_tokens":800000,"cache_write_input_tokens":100000,"output_tokens":100000,"reasoning_output_tokens":50000,"total_tokens":1100000},"last_token_usage":{"input_tokens":1000000,"cached_input_tokens":800000,"cache_write_input_tokens":100000,"output_tokens":100000,"reasoning_output_tokens":50000,"total_tokens":1100000}}}}
 {"timestamp":"2026-09-17T00:00:02Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000000,"cached_input_tokens":800000,"cache_write_input_tokens":100000,"output_tokens":100000,"reasoning_output_tokens":50000,"total_tokens":1100000},"last_token_usage":{"input_tokens":1000000,"cached_input_tokens":800000,"cache_write_input_tokens":100000,"output_tokens":100000,"reasoning_output_tokens":50000,"total_tokens":1100000}}}}
 EOF

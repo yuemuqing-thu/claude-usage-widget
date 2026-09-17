@@ -160,21 +160,21 @@ if [ "$ACTION" = "doctor" ]; then
     info "会话文件 $_n 个"
     if [ "$_n" -gt 0 ]; then
       _f=$(find "$CODEX_HOME/sessions" "$CODEX_HOME/archived_sessions" -name '*.jsonl' 2>/dev/null | head -1)
-      _tc=$(grep -c 'token_count' "$_f" 2>/dev/null || echo 0)
+      _tc=$(grep -c '"type"[[:space:]]*:[[:space:]]*"token_count"' "$_f" 2>/dev/null || true)
+      _tc=${_tc:-0}
       info "抽样文件含 token_count 事件 $_tc 条"
       # 用量事件的键名（只有键，没有值）
       if [ "$_tc" -gt 0 ]; then
         info "该事件的键名："
-        grep -m1 'token_count' "$_f" 2>/dev/null | osascript -l JavaScript -e '
-          function run(argv){ return ""; }' >/dev/null 2>&1
-        grep -m1 'token_count' "$_f" 2>/dev/null \
+        grep -m1 '"type"[[:space:]]*:[[:space:]]*"token_count"' "$_f" 2>/dev/null \
           | tr ',{}' '\n\n\n' | grep -o '"[a-z_]*":' | sort -u | tr -d '":' | tr '\n' ' ' \
           | fold -w 70 -s | sed 's/^/      /'
         printf "\n"
       fi
-      _parsed=$(awk -v TZOFF=0 -f "$WIDGET_SRC/lib/scan-codex.awk" "$_f" 2>/dev/null | wc -l | tr -d ' ')
+      _parsed=$(awk -v TZOFF=0 -f "$WIDGET_SRC/lib/scan-codex.awk" "$_f" 2>/dev/null | awk '!/^#/ && NF { n++ } END { print n+0 }')
       if [ "$_parsed" -gt 0 ]; then ok "解析器能读出 $_parsed 组（日期×模型）"
-      else no "解析器读不出东西 —— 格式跟预期不符，请把上面那行键名发给作者"; fi
+      elif [ "$_tc" -eq 0 ]; then info "该抽样会话还没有用量事件；这不代表其他会话没有数据"
+      else info "该抽样尚无可统计的非零用量（也可能仅含额度事件）；请结合采集器输出判断"; fi
     fi
     # 额度环走的是会话记录里的 rate_limits 快照，不读凭据、不联网，
     # 所以这里只需要查三件事：字段在不在、解析得出来不、新不新。

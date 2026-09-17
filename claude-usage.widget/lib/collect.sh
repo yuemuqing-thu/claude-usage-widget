@@ -13,7 +13,7 @@ set -u
 LIB=$(cd "$(dirname "$0")" && pwd)
 STATE="$HOME/.claude/usage-widget"
 WINDOW=91
-CODEX_CACHE_VERSION=3
+CODEX_CACHE_VERSION=4
 
 # 「这台机器装没装 Claude Code」不能看 ~/.claude 在不在 —— install.sh 自己就会
 # mkdir 它。得看 Claude Code 自己创建的东西：主配置文件，或者会话目录。
@@ -175,7 +175,8 @@ fi
 if [ ! -f "$STATE/codex.off" ] && [ -d "$CODEX_HOME" ]; then CODEX_ON=1; fi
 
 if [ "$CODEX_ON" = "1" ]; then
-  # v3 修正模型继承、缓存子集重复计数和归档路径身份。旧聚合无法可靠迁移，
+  # v4 仅识别真正的 token_count 事件；旧缓存可能把对该字段的
+  # 讨论或命令文本当成用量。旧聚合无法可靠迁移，
   # 只在版本变化时清一次，随后仍走增量扫描。
   _cv=$(cat "$STATE/cache-codex.version" 2>/dev/null || true)
   if [ "$_cv" != "$CODEX_CACHE_VERSION" ]; then

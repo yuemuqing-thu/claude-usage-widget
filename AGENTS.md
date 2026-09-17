@@ -1,7 +1,17 @@
 # Claude Usage — 给接手的 agent
 
 macOS 的 Übersicht 桌面挂件：显示 Claude 和 Codex 的订阅额度、本地用量统计，
-外加一只在桌面上跑的像素猫。当前 v0.3.5，已发布到 GitHub + Homebrew tap。
+外加一只在桌面上跑的像素猫。本轮版本 v0.3.6；发布状态以 GitHub Release 与 Homebrew 配方为准。
+
+2026-09-18 本轮更新：
+
+- Codex 解析：要求 `token_count` 是 `type` 字段的值，忽略仅含同名标签的记录；升级缓存版本后重建派生缓存。
+- doctor：排除缓存元数据行；抽样没有用量或只有额度事件时，不再直接断言格式错误。
+- 人工对照：`docs/VERIFY_CODEX.md` 解释“已用 / 剩余”的方向及同时间核对步骤，中英 README 均有入口。
+- 推广素材：`docs/xiaohongshu/` 的六张第二版轮播图、自然语气配文及 20 秒录屏分镜。
+
+发布前已通过 Shell 检查和 Codex 数据回归；回归样例确认旧解析器会读入同名标签样例，新解析器忽略它。
+宣传截图仍为仓库的历史实拍，尚需补拍双页签新版画面；猫精灵直接取自当前代码。
 
 ## 硬性约束
 
@@ -20,7 +30,7 @@ macOS 的 Übersicht 桌面挂件：显示 Claude 和 Codex 的订阅额度、�
 install.sh                    安装/卸载/codex 开关/doctor 四个子命令，是唯一入口
 claude-usage.widget/
   index.jsx                   挂件本体（~1500 行），JSX 编译成全局 html() 超文本
-  lib/collect.sh              数据命令，每 8 秒跑一次，输出一段 JSON
+  lib/collect.sh              数据命令，每 15 秒跑一次，输出一段 JSON
   lib/scan.awk                扫 ~/.claude/projects 的会话
   lib/scan-codex.awk          扫 ~/.codex/sessions 的会话
   lib/codex-limits.awk        从 Codex 会话记录里取额度快照
@@ -44,7 +54,7 @@ test/render-test.js           挂件渲染测试，覆盖数据源的四种组�
 **3. 所有即时 UI 状态都是 CSS `:checked` 兄弟选择器状态机。**
 展开、主题、毛色、宠物、语言、数据源都靠隐藏的 `<input>`。
 这些 input **必须是 `.body` 前面的直接兄弟节点**，挪位置会整个失效。
-为什么不用 React state：数据命令 8 秒才刷一次，走 state 会有 8 秒延迟。
+这是现有实现约定，不代表 React state 本身会受 15 秒数据轮询限制。
 
 **4. 两个数据源同时渲染，用 CSS 选显示哪个。**
 不是切换后重新取数——那样标题会先变、数字后变，比延迟更糟，是误导。
@@ -64,6 +74,11 @@ test/render-test.js           挂件渲染测试，覆盖数据源的四种组�
 被误读成代码挂了）、剥 PATH 时把 `sh` 也剥掉了、stub 的 `html()` 不调用函数式组件
 导致断言永远为空。**看到异常结果，先怀疑测试。**
 
+**9. 不能用关键词搜索代替 JSON 事件识别。**
+Codex 会把用户输入、命令和工具调用原样写进会话。如果只要一行里出现
+`token_count` 就当成用量事件，开发者讨论这个解析器时反而会制造假用量。
+当前解析器已收紧为匹配 `type: "token_count"`，不是完整 JSON 解析器；不要将其描述为完整的结构校验。
+
 ## Codex 数据的关键事实
 
 额度来自会话记录里的 `token_count` 事件（`codex-rs/protocol/src/protocol.rs`）：
@@ -82,24 +97,27 @@ RateLimitWindow   { used_percent, window_minutes, resets_at }
 
 ## 待办（按重要性排序）
 
-### 1. 用真实数据验证 Codex 整条链路 ← 最重要
+### 1. 完成 Codex 真机的最后对照
 
-**Codex 的实现至今没有在真实数据上跑过一行。** 全部是照着协议定义写的，
-用构造的样例测的。开发机现在已装 Codex CLI 0.154.0。
+2026-09-18 已用 Codex CLI 0.154.0 的真实会话验证：17 个会话文件可扫描，
+`rate_limits` 可读，5 小时/7 天额度能落盘，模型名也能从 `turn_context` 继承。
+真机排查曾发现 doctor 的关键词抽样误判；并以构造样例验证、加固了用量事件过滤。
+不要据此声称已证明用户真实统计被命令文本污染。
 
-要做的：开一个 codex 会话，然后 `claude-usage-widget doctor`，确认
-额度环的数字跟 codex 里 `/status` 显示的一致。不一致就查 `lib/codex-limits.awk`。
+剩下的人工核对：在同一分钟内对照 Codex `/status` 与挂件的两个环，
+确认百分比及重置时间完全一致。
 
 ### 2. 核对计价表
 
-`lib/merge.awk` 里 Codex 的模型单价（gpt-5 $1.25/$10、mini $0.25/$2、o3 $2/$8）
-是凭当时印象写死的，**没核对过**。还要确认遇到表里没有的模型时不会算出离谱的数。
-这个数字直接显示在界面上。
+`lib/merge.awk` 已增加新模型价格和 unknown 降级，不能再按最早的三条价格表描述。
+仍需逐项复核来源日期；宽泛的 `gpt-5|codex` 匹配可能给新型号套旧价格。
+当前回归覆盖的是计算语义，不证明单价仍有效。宣传应始终写 API 等价估算，而不是账单。
 
 ### 3. 验证增量扫描不会重复计数
 
-`scan-codex.awk` 优先用 `last_token_usage`（单次增量），没有才按文件算 `total_token_usage`
-的差值。这两条分支切换的边界没有专门测过。
+`scan-codex.awk` 有 `total_token_usage` 时优先用累计值做差，避免重复写入同一份
+`last_token_usage` 时重复计数；累计值重置或缺失时才用 `last_token_usage` 降级。
+这两条分支切换的边界还没有专门测过。
 
 ### 4. 彩蛋阈值的边界
 
