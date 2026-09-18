@@ -2,13 +2,11 @@
 
 # Claude Usage
 
-**A frosted-glass card on your desktop that tells you how much Claude and Codex quota is left.**
+**Claude and Codex usage, right on your Mac desktop.**
 
 **Plus a pixel cat that lives there.**
 
-<img src="docs/banner.png" width="100%" alt="Claude Usage">
-
-<img src="docs/walk.gif" width="360" alt="the cat walking">
+<img src="docs/readme-hero.en.png" width="100%" alt="A real capture of the Claude and Codex desktop widget, alongside its pixel cats">
 
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#install)
@@ -17,13 +15,30 @@
 
 [简体中文](README.md) · **English**
 
+[Install](#install) · [Usage](#-the-widget) · [Meet the cat](#-the-cat) · [Buy us a coffee](https://ifdian.net/a/sonetto_zhou)
+
 </div>
 
 ---
 
+Already have Homebrew? Two commands to bring the cat home:
+
+```sh
+brew install yuemuqing-thu/tap/claude-usage-widget
+claude-usage-widget install
+```
+
+No Homebrew, or want Claude Code to handle it? [Other installation options](#install).
+
+For **macOS 12+** with **Claude Code or Codex** on your machine. Usage is read and calculated locally; no extra account credentials are needed.
+
 ## 🐾 The cat
 
-It really lives on your desktop — not inside a window. Switch apps, drag things around, it's still there.
+It lives on your desktop. Move the mouse away and it follows; leave it alone and it swishes its tail, then settles down for a nap.
+
+<div align="center">
+<img src="docs/walk.gif" width="384" alt="The actual walking animation from the widget">
+</div>
 
 <div align="center">
 <table>
@@ -52,7 +67,8 @@ It really lives on your desktop — not inside a window. Switch apps, drag thing
 
 Pet it enough and it remembers you — that `♥` in the panel is the running count. At **100** you get to name it.
 
-### Things to do with it
+<details>
+<summary><b>Open the toy box: fish, yarn, a laser, a box and a bird</b></summary>
 
 <div align="center"><img src="docs/items.png" width="321" alt="toys"></div>
 
@@ -63,6 +79,8 @@ Pet it enough and it remembers you — that `♥` in the panel is the running co
 | 🔴 | **Laser** | A red dot skitters across your desktop for ~13s. It never catches it |
 | 📦 | **Box** | Climbs in, sits with just its head out, hums to itself ♪ |
 | 🐦 | **Bird** | Drops into a slow stalk. Get too close and the bird leaves |
+
+</details>
 
 ---
 
@@ -109,32 +127,15 @@ Nobody yet. First spot is yours 🐾
 
 **Works with Claude and Codex.** Whichever you have installed shows up; if you have both, tabs in the header switch between them.
 
-<table>
-<tr>
-<td width="58%" valign="top" align="center">
-<img src="docs/shot-pill.png" width="100%" alt="collapsed">
-<br>
-<sub><b>Most of the time</b> — one pill, two numbers, cat sunbathing next to it</sub>
-<br><br>
-<div align="left">
-Expand it and you get:
-<ul>
-<li><b>5-hour</b> and <b>weekly</b> quota rings — they turn amber, then red, as they fill</li>
-<li>Context used in the current session</li>
-<li>Spend over the last 14 days</li>
-<li>91-day activity heatmap</li>
-<li>Tokens today, and which model ate them</li>
-</ul>
-Bottom row has the accent colours, a 中/EN switch, and the cat toggle. Five colour themes.
-</div>
-</td>
-<td width="42%" valign="top" align="center">
-<img src="docs/shot-expanded.png" width="100%" alt="expanded">
-<br>
-<sub><b>Click the chevron</b> — everything's in here</sub>
-</td>
-</tr>
-</table>
+<p align="center">
+<a href="docs/shot-desktop-20260918.png"><img src="docs/shot-desktop-20260918.png" width="460" alt="September 2026 desktop capture: Claude and Codex tabs, quota rings, activity history, JOJO and the toy controls"></a>
+</p>
+
+- **Quota and resets:** separate 5-hour and weekly readings, with amber and red warnings as they fill.
+- **Local history:** 14-day trends, a 91-day heatmap, today's tokens and model share. Claude also shows current context usage.
+- **Make it yours:** drag or collapse the card, choose from five accent colours, and switch between English and Chinese.
+
+Dollar amounts are **API-equivalent estimates, not a bill**. Quota readings update with local sessions; the widget shows their age. The screenshot above uses Chinese, one of the two supported languages. [Promotional image pack](docs/xiaohongshu/README.md)
 
 ---
 
@@ -264,7 +265,7 @@ sh install.sh uninstall
 ## What you need
 
 - macOS 12 or newer
-- [Claude Code](https://claude.com/claude-code) — the two rings are fed by its statusLine
+- [Claude Code](https://claude.com/claude-code) **or Codex** on your machine; quota readings come from Claude's statusLine or Codex session logs.
 - Nothing else. The widget runs on `sh` / `awk` / `osascript` that ship with macOS. **No Node, no Python, no jq.**
 
 ---

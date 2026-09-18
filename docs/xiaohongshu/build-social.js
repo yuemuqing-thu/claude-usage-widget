@@ -15,7 +15,9 @@ function shot(file, fullW, fullH, box, x, y, w, radius) {
   const [bx,by,bw,bh]=box, scale=w/bw, id='crop'+(++clipId);
   return `<g transform="translate(${x} ${y}) scale(${scale})"><defs><clipPath id="${id}"><rect width="${bw}" height="${bh}" rx="${radius}"/></clipPath></defs><g clip-path="url(#${id})"><image x="${-bx}" y="${-by}" width="${fullW}" height="${fullH}" xlink:href="${imageData(file)}"/></g></g>`;
 }
-const card=(x,y,w)=>shot('shot-expanded.png',826,1418,[36,34,752,1350],x,y,w,91);
+// 2026-09-18 用户提供的双页签实拍；保留原文件，所有裁切都发生在 SVG 中。
+const currentShot='shot-desktop-20260918.png';
+const card=(x,y,w)=>shot(currentShot,1034,1498,[54,26,752,1350],x,y,w,62);
 const pill=(x,y,w)=>shot('shot-pill.png',776,176,[24,36,536,102],x,y,w,48);
 function cat(x,y,scale,coat='orange',pose='sit',eye='open') {
   const rows=spr.frames[pose][0].map(s=>Array.from(s.padEnd(spr.W,'.')));
@@ -33,10 +35,10 @@ function page(n, name, light, body) {
 page(1,'01-cover',false,
   text(72,190,'本来只是想看 AI 用量',39,'#B9D2C3')+
   text(66,305,'结果在 Mac 上',88,paper,650)+text(66,413,'养了只猫。',98,mint,650)+
-  pill(72,590,670)+cat(775,530,7,'orange','sit','happy')+
-  text(78,785,'Claude / Codex 用量，放在桌面上看。',30)+
-  text(78,836,'等它写代码的时候，还能摸两下猫。',30,'#B9D2C3')+
-  rule(932)+text(72,977,'跟着鼠标跑  /  投喂  /  玩毛线球  /  摸摸头',23,'#B9D2C3'));
+  cat(166,502,8,'orange','sit','happy')+card(654,448,294)+
+  text(78,861,'Claude / Codex 用量，放在桌面上看。',27)+
+  text(78,908,'等它写代码的时候，还能摸两下猫。',27,'#B9D2C3')+
+  text(78,964,'跟着鼠标跑 / 投喂 / 玩毛线球 / 摸摸头',21,'#B9D2C3'));
 page(2,'02-desktop',true,
   text(70,175,'用掉多少，什么时候重置',61,ink,650)+
   text(72,235,'回到桌面就能看。点一下，还能展开。',29,'#55776B')+
@@ -48,9 +50,9 @@ page(2,'02-desktop',true,
 page(3,'03-data',false,
   text(70,178,'最近写了多少代码，',63,paper,650)+text(70,256,'用量也留了点痕迹。',63,paper,650)+
   text(73,338,'近 14 天 · API 等价估算趋势',28,mint,500)+
-  shot('shot-expanded.png',826,1418,[76,461,672,180],72,370,936,34)+
+  shot(currentShot,1034,1498,[94,452,672,180],72,370,936,34)+
   text(73,682,'91 天 · 活动热力图',28,mint,500)+
-  shot('shot-expanded.png',826,1418,[100,703,407,283],72,716,330,12)+
+  shot(currentShot,1034,1498,[118,725,391,279],72,716,330,12)+
   text(466,788,'忙过哪几天，一眼能找到。',30)+
   text(466,843,'按本机会话记录统计。',25,'#B9D2C3')+
   text(466,891,'金额是 API 等价估算，',23,'#B9D2C3')+
@@ -87,3 +89,24 @@ page(6,'06-install',true,
   text(72,895,'yuemuqing-thu/',31,ink,600,'font-family="Menlo,monospace"')+
   text(72,941,'claude-usage-widget',31,ink,600,'font-family="Menlo,monospace"'));
 console.log('已生成六张原比例、单层裁切的宣传 SVG。');
+
+// README 在桌面浏览时以横向图为主，避免把方形轮播图放大成长页面。
+// 英文版只翻译图中文字，实拍中的 UI 不作伪造式翻译。
+for (const lang of ['zh','en']) {
+  const zh=lang==='zh';
+  let body=text(80,88,'CLAUDE USAGE',23,'#A7C6B6',600)+
+    text(80,187,'Claude + Codex',42,mint,600)+
+    text(76,291,zh?'用量放在桌面，':'Your AI usage.',zh?65:76,paper,650)+
+    text(76,381,zh?'猫也住在桌面。':'And a little cat.',zh?65:76,paper,650)+
+    text(80,464,zh?'5 小时与 7 天额度 · 本地统计 · 像素猫':'Quota rings. Local stats. A desktop companion.',zh?26:25,'#B9D2C3')+
+    text(80,511,zh?'免费开源，用本机已有的会话记录就能工作。':'Free and open source. Uses your local session data.',zh?25:23,'#B9D2C3')+
+    `<path d="M80 574H714" stroke="${mint}" stroke-opacity=".25"/>`+
+    text(80,631,zh?'小猫正在等你开工。':'A little company while you work.',26,mint,500)+
+    cat(174,665,4,'orange','sit','happy')+cat(409,665,4,'black','loaf','shut')+
+    card(867,57,410)+
+    text(80,855,zh?'macOS / 中英切换 / 五种主题色':'macOS / Chinese & English / Five accent colours',20,'#A7C6B6')+
+    text(1318,855,zh?'真实桌面截图 · 2026.09':'Desktop capture · Sep 2026',18,'#A7C6B6',400,'text-anchor="end"');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1440" height="900" viewBox="0 0 1440 900"><g font-family="PingFang SC,Helvetica Neue,sans-serif"><rect width="1440" height="900" fill="${dark}"/>${body}</g></svg>`;
+  fs.writeFileSync(path.join(dir,`../readme-hero.${lang}.svg`),svg+'\n');
+}
+console.log('已生成中英两版 README 横向首图。');

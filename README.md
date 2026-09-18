@@ -2,13 +2,11 @@
 
 # Claude Usage
 
-**桌面上的一张毛玻璃小卡片，随时告诉你 Claude 和 Codex 的额度还剩多少。**
+**Claude 和 Codex 的用量，放在 Mac 桌面上看。**
 
 **外加一只住在桌面上的像素猫。**
 
-<img src="docs/banner.png" width="100%" alt="Claude Usage">
-
-<img src="docs/walk.gif" width="360" alt="小猫走路">
+<img src="docs/readme-hero.zh.png" width="100%" alt="Claude 和 Codex 双页签用量挂件实拍，搭配橘猫和打盹的黑猫">
 
 [![macOS](https://img.shields.io/badge/macOS-12%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Homebrew](https://img.shields.io/badge/brew-install-FBB040?logo=homebrew&logoColor=white)](#安装)
@@ -17,13 +15,30 @@
 
 **简体中文** · [English](README.en.md)
 
+[安装](#安装) · [看用量](#-用量挂件) · [陪猫玩](#-小猫) · [请猫喝咖啡](https://ifdian.net/a/sonetto_zhou)
+
 </div>
 
 ---
 
+已经有 Homebrew？两行命令，把猫接回桌面：
+
+```sh
+brew install yuemuqing-thu/tap/claude-usage-widget
+claude-usage-widget install
+```
+
+没有 Homebrew，或想让 Claude Code 帮忙安装？[往这里走](#安装)。
+
+适用于 **macOS 12+**，配合本机的 **Claude Code 或 Codex** 使用。用量在本地读取和计算，不需要再提供账号密码。
+
 ## 🐾 小猫
 
-它是真的在你桌面上跑，不在任何窗口里 —— 你切换应用、拖窗口，它都在。
+它住在桌面上。鼠标挪远一点，它就跟过来；闲下来会晃尾巴，等久了自己趴下睡觉。
+
+<div align="center">
+<img src="docs/walk.gif" width="384" alt="产品中小猫的实际行走动画">
+</div>
 
 <div align="center">
 <table>
@@ -52,7 +67,8 @@
 
 摸得多了它会记住你 —— 展开面板右边那个 `♥` 就是攒下来的次数。
 
-### 陪它玩
+<details>
+<summary><b>打开玩具箱：鱼、毛线球、激光点、纸箱和小鸟</b></summary>
 
 <div align="center"><img src="docs/items.png" width="321" alt="道具"></div>
 
@@ -64,7 +80,7 @@
 | 📦 | **纸箱** | 钻进去坐着，只露个头和耳朵，还哼歌 ♪ |
 | 🐦 | **小鸟** | 它会压低身子慢慢摸过去，靠太近鸟就飞了 |
 
----
+</details>
 
 ---
 
@@ -107,32 +123,18 @@
 
 ## 📊 用量挂件
 
-<table>
-<tr>
-<td width="58%" valign="top" align="center">
-<img src="docs/shot-pill.png" width="100%" alt="折叠态">
-<br>
-<sub><b>平时</b> —— 一颗药丸，两个数字，猫在旁边晒太阳</sub>
-<br><br>
-<div align="left">
-展开之后能看到：
-<ul>
-<li><b>5 小时</b> 和 <b>7 天</b> 两个额度环 —— 快满时自动变橙、变红</li>
-<li>当前会话的上下文占用</li>
-<li>近 14 天的花费柱状图</li>
-<li>91 天活动热力图</li>
-<li>今日 token、主力模型占比</li>
-</ul>
-最底下一排是主题色和小猫的开关，一共五套配色，随时换。
-</div>
-</td>
-<td width="42%" valign="top" align="center">
-<img src="docs/shot-expanded.png" width="100%" alt="展开态">
-<br>
-<sub><b>点开箭头</b> —— 全都在里面</sub>
-</td>
-</tr>
-</table>
+**Claude / Codex，一张卡片里切换。** 只装了一家就只显示那家；平时可以收成一小条，需要时再展开。
+
+<p align="center">
+<img src="docs/xiaohongshu/02-desktop.png" width="49%" alt="新版双页签挂件，展示 5 小时与 7 天额度、折叠模式">
+<img src="docs/xiaohongshu/03-data.png" width="49%" alt="来自最新实拍的近 14 天用量趋势与 91 天活动热力图">
+</p>
+
+- **额度与重置时间**：5 小时 / 7 天分别显示，快满时变橙、变红。
+- **本地用量记录**：近 14 天趋势、91 天热力图、今日 token 和模型占比；Claude 还能看当前上下文占用。
+- **摆成自己喜欢的样子**：可拖动、可折叠，五种主题色，中英切换。
+
+图中美元金额是 **API 等价估算，不是实际账单**。额度随本地会话更新，卡片会显示更新时间。[查看本次桌面原图](docs/shot-desktop-20260918.png) · [下载六张宣传图](docs/xiaohongshu/README.md)
 
 ---
 
@@ -264,7 +266,7 @@ sh install.sh uninstall
 ## 需要什么
 
 - macOS 12 以上
-- [Claude Code](https://claude.com/claude-code) —— 那两个额度环要靠它喂数据
+- 本机的 [Claude Code](https://claude.com/claude-code) **或 Codex** —— 分别通过 statusLine 和会话记录提供额度数据
 - 没了。挂件只用 macOS 自带的 `sh` / `awk` / `osascript`，**不需要 Node、Python、jq**
 
 ---
