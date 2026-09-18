@@ -223,6 +223,9 @@ To compare quota readings, finish a short Codex turn, run `/status` inside Codex
 
 **Nothing to do** — the widget follows what's on the machine: with both installed you get **Claude / Codex** tabs in the header, click to switch; with only one, you just get that one, no empty tab left over.
 
+<details>
+<summary>Where the numbers come from · Freshness and compatibility</summary>
+
 > **Where the numbers come from.** At the end of every turn Codex writes a `token_count` event into its session log, carrying the server's `rate_limits` snapshot — `used_percent`, `window_minutes`, `resets_at`. The two rings read that directly.
 >
 > - Quota and stats are read **entirely from `~/.codex/sessions/` on your machine — no network requests, and your login credentials are never touched**
@@ -234,6 +237,8 @@ To compare quota readings, finish a short Codex turn, run `/status` inside Codex
 >
 > Don't want it: `claude-usage-widget codex off` (wipes the cache and snapshot too).
 
+</details>
+
 ### Something's wrong
 
 ```sh
@@ -244,7 +249,8 @@ Prints what it found and where it broke. **Everything is redacted** — tokens a
 
 Installed via route C? Run `sh install.sh doctor` from the folder you extracted.
 
-### Uninstall
+<details>
+<summary><b>Uninstall · Remove the widget and optional host</b></summary>
 
 Installed via **A / B**:
 
@@ -259,6 +265,8 @@ Installed via **C**, from the folder you extracted:
 ```sh
 sh install.sh uninstall
 ```
+
+</details>
 
 ---
 
@@ -300,10 +308,11 @@ customisation, file layout, troubleshooting — is in the
 
 The cat sprites **started as AI-generated images** (reference art from Midjourney and Jimeng, then traced into real sprites by script).
 
-Code is MIT. The pixel art makes no copyright claim — take it.
+Code is licensed under MIT. The author claims copyright in the pixel artwork and reserves the associated rights; the artwork is not covered by the code's MIT license. Installing and running this project is unaffected. Please contact the author before separately using, adapting or distributing the artwork. See [asset licensing](ASSETS-LICENSE.md).
 
 ## Thanks
 
+- Claude and GPT / Codex — assistance with development, debugging and project documentation
 - [Übersicht](https://tracesof.net/uebersicht/) — the desktop widget host
 - Usage data is read from `~/.claude/` and `~/.codex/` on your own machine. **Nothing is uploaded.**
 - No outbound calls, ever.

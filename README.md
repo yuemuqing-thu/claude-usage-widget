@@ -224,6 +224,9 @@ Homebrew 换成中科大镜像也能走通，但 `brew tap` 那步仍然要连 G
 
 **不用做任何事** —— 挂件跟着这台机器上装了什么走：两样都有就在标题处给出 **Claude / Codex** 两个页签，点一下就切；只装了其中一个，就只显示那一个，不会留个空页签。
 
+<details>
+<summary>数字是怎么来的 · 数据新鲜度与兼容性</summary>
+
 > **数字是怎么来的。** Codex 每个回合结束会往会话记录里写一条 `token_count` 事件，里面带着服务端返回的 `rate_limits` 快照 —— `used_percent`、`window_minutes`、`resets_at` 齐全。两个环直接读它。
 >
 > - 额度和统计**全部读自本机 `~/.codex/sessions/`，不发任何网络请求，也不碰你的登录凭据**
@@ -235,6 +238,8 @@ Homebrew 换成中科大镜像也能走通，但 `brew tap` 那步仍然要连 G
 >
 > 不想要：`claude-usage-widget codex off`（连缓存和快照一起删）
 
+</details>
+
 ### 出问题了
 
 ```sh
@@ -245,7 +250,8 @@ claude-usage-widget doctor
 
 走路线 C 装的，命令换成在解压出来的目录里跑 `sh install.sh doctor`。
 
-### 卸载
+<details>
+<summary><b>卸载 · 移除挂件与可选宿主</b></summary>
 
 走 **A / B** 装的：
 
@@ -260,6 +266,8 @@ brew uninstall --cask ubersicht        # 顺便把宿主也删了（如果只为
 ```sh
 sh install.sh uninstall
 ```
+
+</details>
 
 ---
 
@@ -605,10 +613,11 @@ sh ~/Library/"Application Support"/Übersicht/widgets/claude-usage.widget/lib/co
 
 小猫的像素图**源自 AI 生成图**（Midjourney 和即梦出参考图，再用脚本反解成精灵图 —— 过程见上面的折叠段）。
 
-代码 MIT 授权。像素素材不主张版权，随便拿去用。
+代码采用 MIT 授权。小猫像素素材由作者主张版权，保留相关权利，不适用代码的 MIT 授权。正常安装、运行本项目不受影响；单独使用、改编或分发素材，请先联系作者。详见[素材授权说明](ASSETS-LICENSE.md)。
 
 ## 致谢
 
+- Claude 与 GPT / Codex —— 协助代码开发、排查问题和整理项目文档
 - [Übersicht](https://tracesof.net/uebersicht/) —— 桌面挂件宿主
 - 用量数据来自本机的 `~/.claude/` 和 `~/.codex/`，**不上传任何东西**
 - **全程不联网**，一个字节都不往外发

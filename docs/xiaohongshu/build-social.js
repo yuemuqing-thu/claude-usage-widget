@@ -97,7 +97,7 @@ for (const lang of ['zh','en']) {
   let body=text(80,88,'CLAUDE USAGE',23,'#A7C6B6',600)+
     text(80,187,'Claude + Codex',42,mint,600)+
     text(76,291,zh?'用量放在桌面，':'Your AI usage.',zh?65:76,paper,650)+
-    text(76,381,zh?'猫也住在桌面。':'And a little cat.',zh?65:76,paper,650)+
+    text(76,381,zh?'修猫页住桌面':'And a little cat.',zh?65:76,paper,650)+
     text(80,464,zh?'5 小时与 7 天额度 · 本地统计 · 像素猫':'Quota rings. Local stats. A desktop companion.',zh?26:25,'#B9D2C3')+
     text(80,511,zh?'免费开源，用本机已有的会话记录就能工作。':'Free and open source. Uses your local session data.',zh?25:23,'#B9D2C3')+
     `<path d="M80 574H714" stroke="${mint}" stroke-opacity=".25"/>`+
